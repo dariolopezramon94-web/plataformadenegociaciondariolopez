@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fuente Roboto para todo el sistema */
+* {
+  font-family: 'Roboto', sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a, #1a1a1a, #0d0d0d);
+  background-attachment: fixed;
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Estilos para dropdowns - fondo blanco y texto negro */
+select option {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* Icono de date */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+select, input[list] {
+  color-scheme: dark;
+}
+
+/* Placeholders más visibles */
+::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Foco en inputs */
+input:focus, select:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+}
+
+/* Ajustes para móviles: inputs y selects más grandes para tacto */
+@media (max-width: 640px) {
+  input, select, button {
+    font-size: 16px !important; /* Evita zoom en iOS */
+  }
+  .glass-card, .glass-card-dark {
+    padding: 1.25rem !important;
+  }
+}
+
+/* Estilos para el menú hamburguesa */
+.menu-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  padding: 8px;
+}
+.menu-icon span {
+  display: block;
+  width: 26px;
+  height: 3px;
+  background: white;
+  border-radius: 2px;
+  transition: 0.3s;
+}
+.menu-icon.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.menu-icon.active span:nth-child(2) {
+  opacity: 0;
+}
+.menu-icon.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(5px, -5px);
+}
