@@ -190,7 +190,6 @@ export function useNegotiation() {
     }
   }, [selectedConversation, selectedVehicle]);
 
-  // ===== FUNCIÓN MODIFICADA: usa supabase.functions.invoke =====
   const invokeEdgeFunction = async (conversationId, clientMessage, vendorReply = null, mode = 'generate') => {
     const body = {
       conversationId,
@@ -365,9 +364,9 @@ export function useNegotiation() {
     }
   }, [selectedConversation, messages, selectedVehicle]);
 
+  // Copiar respuesta SIN alert
   const copyResponse = useCallback((text) => {
     navigator.clipboard.writeText(text);
-    showNotification('Respuesta copiada al portapapeles', 'success');
   }, []);
 
   return {

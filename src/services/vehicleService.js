@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient';
 
 // ==============================
-// OBTENER VEHÍCULOS (con filtro por publicación)
+// OBTENER VEHÍCULOS
 // ==============================
 export async function getVehicles(filters = {}) {
   let query = supabase
@@ -10,14 +10,12 @@ export async function getVehicles(filters = {}) {
     .order('brand', { ascending: true })
     .order('model', { ascending: true });
 
-  // Filtro por estado
   if (filters.status && filters.status !== 'todos') {
     query = query.eq('status', filters.status);
   } else {
     query = query.neq('status', 'vendido');
   }
 
-  // Filtro por mes (solo para vendidos)
   if (filters.month && filters.status === 'vendido') {
     const startDate = `${filters.month}-01`;
     const endDate = `${filters.month}-31`;
@@ -26,7 +24,6 @@ export async function getVehicles(filters = {}) {
       .lte('created_at', endDate);
   }
 
-  // NUEVO FILTRO: Publicado en Marketplace
   if (filters.publicado !== undefined && filters.publicado !== 'todos') {
     const isPublished = filters.publicado === 'si';
     query = query.eq('publicado_marketplace', isPublished);
@@ -158,18 +155,36 @@ export async function changeVehicleStatus(id, status, soldBy = null) {
 }
 
 // ==============================
-// ELIMINAR VEHÍCULO
+// ELIMINAR VEHÍCULO (con eliminación en cascada de sales)
 // ==============================
 export async function deleteVehicle(id) {
-  const { error } = await supabase
+  // Primero eliminar el registro de venta si existe
+  const { error: deleteSaleError } = await supabase
+    .from('sales')
+    .delete()
+    .eq('vehicle_id', id);
+
+  if (deleteSaleError) {
+    console.error('Error al eliminar registro de venta:', deleteSaleError);
+    throw deleteSaleError;
+  }
+
+  // Luego eliminar el vehículo
+  const { error: deleteVehicleError } = await supabase
     .from('vehicles')
     .delete()
     .eq('id', id);
-  if (error) throw error;
+
+  if (deleteVehicleError) {
+    console.error('Error al eliminar vehículo:', deleteVehicleError);
+    throw deleteVehicleError;
+  }
+
+  return true;
 }
 
 // ==============================
-// GENERAR MENSAJE PERSONALIZADO (completo - "disponible")
+// GENERAR MENSAJE PERSONALIZADO (completo)
 // ==============================
 export function generateCustomMessage(vehicle) {
   const getArticle = (type) => {

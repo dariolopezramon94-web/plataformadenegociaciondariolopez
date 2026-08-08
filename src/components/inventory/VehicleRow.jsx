@@ -22,13 +22,11 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
   const copyFullMessage = () => {
     const message = generateCustomMessage(vehicle);
     navigator.clipboard.writeText(message);
-    alert('Mensaje de disponibilidad copiado al portapapeles');
   };
 
   const copyPriceMessage = () => {
     const message = generatePriceMessage(vehicle);
     navigator.clipboard.writeText(message);
-    alert('Mensaje de precio copiado al portapapeles');
   };
 
   const togglePublicado = () => {
@@ -60,16 +58,13 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
   };
 
   const handleDelete = () => {
-    if (window.confirm(`¿Eliminar permanentemente el vehículo ${vehicle.brand} ${vehicle.model} (${vehicle.plate})?`)) {
-      onDelete(vehicle.id);
-    }
+    onDelete(vehicle.id);
   };
 
   const customFields = vehicle.custom_fields || [];
 
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-3 sm:p-4 shadow-lg hover:bg-white/15 transition-all duration-200">
-      {/* Información principal */}
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h3 className="text-lg sm:text-xl font-bold text-white">
@@ -116,7 +111,6 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
         </div>
       </div>
 
-      {/* Botones y acciones */}
       <div className="flex flex-wrap items-center gap-1.5 mt-3">
         {isAdmin && vehicle.status !== 'vendido' && (
           <button
@@ -156,7 +150,6 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
         )}
       </div>
 
-      {/* Información secundaria */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 mt-3 text-white/50 text-xs">
         <span>Kilometraje: {vehicle.mileage} km</span>
         <span>Motor: {vehicle.engine || 'N/A'}</span>
@@ -172,7 +165,6 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
         <span>Cabina: {vehicle.tipo_cabina || 'N/A'}</span>
       </div>
 
-      {/* Campos personalizados */}
       {customFields.length > 0 && (
         <div className="mt-2 pt-2 border-t border-white/10">
           <div className="flex flex-wrap gap-2 text-white/40 text-xs">
@@ -186,7 +178,6 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
         </div>
       )}
 
-      {/* Modal para confirmar venta */}
       {showStatusMenu && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4">
           <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6 max-w-sm w-full shadow-2xl">
