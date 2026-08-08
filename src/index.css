@@ -82,3 +82,13 @@ input:focus, select:focus {
 .menu-icon.active span:nth-child(3) {
   transform: rotate(-45deg) translate(5px, -5px);
 }
+
+/* Ajustes responsive para inventario */
+@media (max-width: 640px) {
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gap-2 {
+    gap: 0.25rem;
+  }
+}

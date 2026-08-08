@@ -68,22 +68,22 @@ export function InventoryPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl sm:text-3xl font-bold text-white drop-shadow-lg">
         Inventario de Vehículos
       </h1>
       <p className="text-white/60 text-sm">
         {totalItems} vehículos encontrados {totalPages > 1 && `(página ${currentPage} de ${totalPages})`}
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         <div className="flex-1">
           <input
             type="text"
             placeholder="Buscar por tipo, marca o color..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="w-full px-3 sm:px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
           />
         </div>
         <FilterBar filters={filters} setFilters={setFilters} />

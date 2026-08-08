@@ -18,9 +18,8 @@ export function FilterBar({ filters, setFilters }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-4 p-4 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-lg">
-      {/* Filtro por estado */}
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-lg">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         <label htmlFor="statusFilter" className="text-white/80 text-sm font-medium">
           Estado:
         </label>
@@ -28,7 +27,7 @@ export function FilterBar({ filters, setFilters }) {
           id="statusFilter"
           value={filters.status || 'todos'}
           onChange={handleStatusChange}
-          className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+          className="flex-1 sm:flex-none bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
         >
           <option value="todos">Todos</option>
           <option value="disponible">Disponibles</option>
@@ -37,9 +36,8 @@ export function FilterBar({ filters, setFilters }) {
         </select>
       </div>
 
-      {/* Filtro por mes (solo visible cuando estado = vendido) */}
       {filters.status === 'vendido' && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <label htmlFor="monthFilter" className="text-white/80 text-sm font-medium">
             Mes:
           </label>
@@ -48,13 +46,12 @@ export function FilterBar({ filters, setFilters }) {
             type="month"
             value={filters.month || ''}
             onChange={handleMonthChange}
-            className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="flex-1 sm:flex-none bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
           />
         </div>
       )}
 
-      {/* NUEVO FILTRO: Publicado en Marketplace */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         <label htmlFor="publicadoFilter" className="text-white/80 text-sm font-medium">
           Publicado:
         </label>
@@ -62,7 +59,7 @@ export function FilterBar({ filters, setFilters }) {
           id="publicadoFilter"
           value={filters.publicado || 'todos'}
           onChange={handlePublicadoChange}
-          className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+          className="flex-1 sm:flex-none bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
         >
           <option value="todos">Todos</option>
           <option value="si">Publicados</option>
@@ -70,10 +67,9 @@ export function FilterBar({ filters, setFilters }) {
         </select>
       </div>
 
-      {/* Botón limpiar filtros */}
       <button
         onClick={clearFilters}
-        className="px-4 py-1.5 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-sm rounded-lg border border-white/20 transition"
+        className="w-full sm:w-auto px-4 py-1.5 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-sm rounded-lg border border-white/20 transition"
       >
         Limpiar filtros
       </button>

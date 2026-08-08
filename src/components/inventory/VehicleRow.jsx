@@ -68,23 +68,22 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
   const customFields = vehicle.custom_fields || [];
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-4 shadow-lg hover:bg-white/15 transition-all duration-200">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex-1 min-w-[200px]">
-          <h3 className="text-xl font-bold text-white">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 p-3 sm:p-4 shadow-lg hover:bg-white/15 transition-all duration-200">
+      {/* Información principal */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h3 className="text-lg sm:text-xl font-bold text-white">
             {vehicle.brand} {vehicle.model}
           </h3>
-          <div className="flex flex-wrap items-center gap-4 mt-1">
-            <span className="text-white/80 text-lg font-semibold">
-              ${vehicle.price.toLocaleString()}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border backdrop-blur-sm
+              ${vehicle.status === 'disponible' ? 'bg-green-500/20 border-green-500/30 text-green-300' :
+                vehicle.status === 'no_disponible' ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300' :
+                'bg-red-500/20 border-red-500/30 text-red-300'}`}>
+              {vehicle.status === 'disponible' ? 'Disponible' :
+               vehicle.status === 'no_disponible' ? 'No disponible' :
+               'Vendido'}
             </span>
-            <span className="text-white/60 text-sm">
-              {vehicle.year}
-            </span>
-            <span className="text-white/50 text-xs">
-              Ingreso: {formatDate(vehicle.created_at)}
-            </span>
-            {/* Badge clickeable que cambia el estado sin redirigir */}
             <span
               onClick={togglePublicado}
               className={`px-2 py-0.5 rounded-full text-xs border backdrop-blur-sm cursor-pointer select-none ${
@@ -99,65 +98,66 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm
-            ${vehicle.status === 'disponible' ? 'bg-green-500/20 border-green-500/30 text-green-300' :
-              vehicle.status === 'no_disponible' ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300' :
-              'bg-red-500/20 border-red-500/30 text-red-300'}`}>
-            {vehicle.status === 'disponible' ? 'Disponible' :
-             vehicle.status === 'no_disponible' ? 'No disponible' :
-             'Vendido'}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <span className="text-white/80 text-base sm:text-lg font-semibold">
+            ${vehicle.price.toLocaleString()}
           </span>
-
+          <span className="text-white/60 text-sm">
+            {vehicle.year}
+          </span>
+          <span className="text-white/50 text-xs">
+            Ingreso: {formatDate(vehicle.created_at)}
+          </span>
           {vehicle.status === 'vendido' && vehicle.sale_info && (
             <span className="text-white/50 text-xs">
               Vendido el {formatDate(vehicle.sale_info.sale_date)} por {vehicle.sale_info.sold_by}
             </span>
           )}
-
-          {isAdmin && vehicle.status !== 'vendido' && (
-            <button
-              onClick={() => handleStatusChange('vendido')}
-              className="px-3 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
-            >
-              Marcar vendido
-            </button>
-          )}
-
-          <button
-            onClick={copyFullMessage}
-            className="px-3 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
-          >
-            Copiar disponible
-          </button>
-
-          <button
-            onClick={copyPriceMessage}
-            className="px-3 py-1 bg-blue-500/20 backdrop-blur-sm hover:bg-blue-500/30 text-blue-300 text-xs rounded-lg border border-blue-500/30 transition"
-          >
-            Copiar precio
-          </button>
-
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => onEdit(vehicle.id)}
-                className="px-3 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
-              >
-                Editar
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-3 py-1 bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 text-red-300 text-xs rounded-lg border border-red-500/30 transition"
-              >
-                Eliminar
-              </button>
-            </>
-          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3 text-white/50 text-xs">
+      {/* Botones y acciones */}
+      <div className="flex flex-wrap items-center gap-1.5 mt-3">
+        {isAdmin && vehicle.status !== 'vendido' && (
+          <button
+            onClick={() => handleStatusChange('vendido')}
+            className="px-2 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
+          >
+            Marcar vendido
+          </button>
+        )}
+        <button
+          onClick={copyFullMessage}
+          className="px-2 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
+        >
+          Copiar disponible
+        </button>
+        <button
+          onClick={copyPriceMessage}
+          className="px-2 py-1 bg-blue-500/20 backdrop-blur-sm hover:bg-blue-500/30 text-blue-300 text-xs rounded-lg border border-blue-500/30 transition"
+        >
+          Copiar precio
+        </button>
+        {isAdmin && (
+          <>
+            <button
+              onClick={() => onEdit(vehicle.id)}
+              className="px-2 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
+            >
+              Editar
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-2 py-1 bg-red-500/20 backdrop-blur-sm hover:bg-red-500/30 text-red-300 text-xs rounded-lg border border-red-500/30 transition"
+            >
+              Eliminar
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Información secundaria */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 mt-3 text-white/50 text-xs">
         <span>Kilometraje: {vehicle.mileage} km</span>
         <span>Motor: {vehicle.engine || 'N/A'}</span>
         <span>Combustible: {vehicle.fuel_type}</span>
@@ -172,11 +172,12 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
         <span>Cabina: {vehicle.tipo_cabina || 'N/A'}</span>
       </div>
 
+      {/* Campos personalizados */}
       {customFields.length > 0 && (
         <div className="mt-2 pt-2 border-t border-white/10">
-          <div className="flex flex-wrap gap-3 text-white/40 text-xs">
+          <div className="flex flex-wrap gap-2 text-white/40 text-xs">
             {customFields.map((field, idx) => (
-              <span key={idx} className="bg-white/5 px-2 py-1 rounded">
+              <span key={idx} className="bg-white/5 px-1.5 py-0.5 rounded">
                 <strong className="text-white/60">{field.field_name}:</strong>{' '}
                 {field.field_type === 'boolean' ? (field.value === 'true' ? 'Sí' : 'No') : field.value || '-'}
               </span>
@@ -185,6 +186,7 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
         </div>
       )}
 
+      {/* Modal para confirmar venta */}
       {showStatusMenu && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4">
           <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 p-6 max-w-sm w-full shadow-2xl">
