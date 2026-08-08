@@ -22,6 +22,7 @@ export function InventoryPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [notification, setNotification] = useState({ message: '', type: 'info' });
 
   useEffect(() => {
     setCurrentPage(1);
@@ -29,6 +30,20 @@ export function InventoryPage() {
 
   const handleEdit = (id) => {
     navigate(`/editar-vehiculo/${id}`);
+  };
+
+  const showNotification = (message, type = 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification({ message: '', type: 'info' }), 4000);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await removeVehicle(id);
+      showNotification('Vehículo eliminado correctamente', 'success');
+    } catch (err) {
+      showNotification('Error al eliminar el vehículo: ' + err.message, 'error');
+    }
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
@@ -69,6 +84,16 @@ export function InventoryPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {notification.message && (
+        <div className={`p-3 rounded-xl text-sm ${
+          notification.type === 'success' ? 'bg-green-500/20 border border-green-500/30 text-green-300' :
+          notification.type === 'error' ? 'bg-red-500/20 border border-red-500/30 text-red-300' :
+          'bg-blue-500/20 border border-blue-500/30 text-blue-300'
+        }`}>
+          {notification.message}
+        </div>
+      )}
+
       <h1 className="text-xl sm:text-3xl font-bold text-white drop-shadow-lg">
         Inventario de Vehículos
       </h1>
@@ -93,7 +118,7 @@ export function InventoryPage() {
         vehicles={currentVehicles}
         onStatusChange={updateStatus}
         onEdit={handleEdit}
-        onDelete={removeVehicle}
+        onDelete={handleDelete}
         onTogglePublicado={togglePublicado}
         loading={loading}
       />
