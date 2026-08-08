@@ -8,6 +8,7 @@ import { AddVehiclePage } from '../pages/AddVehiclePage';
 import { EditVehiclePage } from '../pages/EditVehiclePage';
 import { NegotiationPage } from '../pages/NegotiationPage';
 import { ConfigPage } from '../pages/ConfigPage';
+import { FinancingPage } from '../pages/FinancingPage';
 
 export function AppRoutes() {
   return (
@@ -19,7 +20,7 @@ export function AppRoutes() {
         {/* Redirección por defecto */}
         <Route path="/" element={<Navigate to="/inventario" replace />} />
 
-        {/* Inventario */}
+        {/* Inventario - accesible para todos los autenticados */}
         <Route
           path="/inventario"
           element={
@@ -74,6 +75,18 @@ export function AppRoutes() {
             <ProtectedRoute requiredRole="admin">
               <Layout>
                 <ConfigPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Financiamiento - solo admin */}
+        <Route
+          path="/financiamiento"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Layout>
+                <FinancingPage />
               </Layout>
             </ProtectedRoute>
           }
