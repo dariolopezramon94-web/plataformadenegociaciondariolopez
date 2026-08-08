@@ -23,7 +23,7 @@ export function Layout({ children }) {
             {/* Logo */}
             <div className="flex items-center">
               <span className="text-white font-bold text-lg sm:text-xl drop-shadow-lg">
-                Plataforma Dario Lopez
+                GVDL
               </span>
             </div>
 
@@ -45,24 +45,24 @@ export function Layout({ children }) {
             {/* Menú escritorio */}
             <div className="hidden md:flex items-center space-x-4">
               <Link to="/inventario" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
-                Inventario
+                Catálogo
               </Link>
               {isAdmin && (
                 <>
                   <Link to="/agregar-vehiculo" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
-                    Agregar Vehículo
+                    Registrar vehículo
                   </Link>
                   <Link to="/negociacion" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
-                    Negociación IA
+                    Asistente de negociación
+                  </Link>
+                  <Link to="/financiamiento" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
+                    Calculadora
                   </Link>
                   <Link to="/configuracion" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
                     Configuración
                   </Link>
                 </>
               )}
-              <span className="text-white/60 text-sm hidden lg:inline">
-                {user?.email} ({user?.role})
-              </span>
               <button
                 onClick={handleLogout}
                 className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-4 py-2 rounded-lg border border-white/20 shadow-md transition duration-200 text-sm"
@@ -73,9 +73,6 @@ export function Layout({ children }) {
 
             {/* Usuario y logout en móvil */}
             <div className="md:hidden flex items-center gap-2">
-              <span className="text-white/60 text-xs truncate max-w-[80px]">
-                {user?.email}
-              </span>
               <button
                 onClick={handleLogout}
                 className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white px-3 py-1.5 rounded-lg border border-white/20 text-xs"
@@ -89,24 +86,30 @@ export function Layout({ children }) {
           {menuOpen && (
             <div className="md:hidden pb-4 pt-2 space-y-2 border-t border-white/10">
               <Link to="/inventario" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
-                Inventario
+                Catálogo
               </Link>
               {isAdmin && (
                 <>
                   <Link to="/agregar-vehiculo" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
-                    Agregar Vehículo
+                    Registrar vehículo
                   </Link>
                   <Link to="/negociacion" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
-                    Negociación IA
+                    Asistente de negociación
+                  </Link>
+                  <Link to="/financiamiento" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
+                    Calculadora
                   </Link>
                   <Link to="/configuracion" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
                     Configuración
                   </Link>
                 </>
               )}
-              <div className="text-white/50 text-xs px-3 py-1">
-                {user?.email} ({user?.role})
-              </div>
+              <button
+                onClick={() => { handleLogout(); closeMenu(); }}
+                className="block w-full text-left text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10"
+              >
+                Cerrar sesión
+              </button>
             </div>
           )}
         </div>
