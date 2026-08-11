@@ -4,14 +4,14 @@ import {
   getCustomFields,
   createCustomField,
   deleteCustomField,
-  getDistinctColors
+  getDistinctColors,
+  getDistinctTypes,
+  getDistinctFuelTypes,
+  getDistinctTransmissions,
 } from '../../services/vehicleService';
 import { CustomFieldInput } from './CustomFieldInput';
 import { Switch } from '../common/Switch';
 
-const VEHICLE_TYPES = ['Auto', 'Camioneta', 'Sedán', 'SUV', 'Hatchback', 'Furgoneta', 'Deportivo', 'Pickup', 'Coupé', 'Convertible'];
-const FUEL_TYPES = ['Gasolina', 'Diésel', 'Eléctrico', 'Híbrido (HEV)', 'Híbrido enchufable (PHEV)', 'Gas (GLP/GNV)', 'Etanol', 'Hidrógeno'];
-const TRANSMISSION_TYPES = ['Manual', 'Automática', 'CVT', 'DCT (doble embrague)', 'AMT (robotizada)', 'Secuencial', 'Semiautomática', 'Single-speed (eléctrica)', 'e-CVT (híbridos)'];
 const STATUS_OPTIONS = ['disponible', 'no_disponible', 'vendido'];
 const CABIN_TYPES = ['Cabina sencilla', 'Doble cabina', 'Otro'];
 
@@ -27,10 +27,10 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
   const [newCustomFieldType, setNewCustomFieldType] = useState('text');
   const [newCustomFieldOptions, setNewCustomFieldOptions] = useState('');
   const [colorSuggestions, setColorSuggestions] = useState([]);
+  const [typeSuggestions, setTypeSuggestions] = useState([]);
+  const [fuelSuggestions, setFuelSuggestions] = useState([]);
+  const [transmissionSuggestions, setTransmissionSuggestions] = useState([]);
 
-  const [isOtherType, setIsOtherType] = useState(false);
-  const [isOtherFuel, setIsOtherFuel] = useState(false);
-  const [isOtherTransmission, setIsOtherTransmission] = useState(false);
   const [isOtherCabin, setIsOtherCabin] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -52,7 +52,7 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
     cuatro_por_cuatro: false,
     negociable: false,
     tipo_cabina: '',
-    publicado_marketplace: false, // <--- NUEVO CAMPO
+    publicado_marketplace: false,
   });
 
   const [customValues, setCustomValues] = useState({});
@@ -60,12 +60,18 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [fields, colors] = await Promise.all([
+        const [fields, colors, types, fuels, transmissions] = await Promise.all([
           getCustomFields(),
-          getDistinctColors()
+          getDistinctColors(),
+          getDistinctTypes(),
+          getDistinctFuelTypes(),
+          getDistinctTransmissions(),
         ]);
         setCustomFieldDefinitions(fields);
         setColorSuggestions(colors);
+        setTypeSuggestions(types);
+        setFuelSuggestions(fuels);
+        setTransmissionSuggestions(transmissions);
         const initial = {};
         fields.forEach(f => { initial[f.id] = ''; });
         setCustomValues(initial);
@@ -81,13 +87,14 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
 
   useEffect(() => {
     if (initialData) {
+      const formattedMileage = initialData.mileage ? formatNumber(initialData.mileage) : '';
       setFormData({
         type: initialData.type || '',
         brand: initialData.brand || '',
         model: initialData.model || '',
         color: initialData.color || '',
         year: initialData.year || '',
-        mileage: initialData.mileage || '',
+        mileage: formattedMileage,
         price: initialData.price || '',
         engine: initialData.engine || '',
         fuel_type: initialData.fuel_type || '',
@@ -100,13 +107,13 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
         cuatro_por_cuatro: initialData.cuatro_por_cuatro || false,
         negociable: initialData.negociable || false,
         tipo_cabina: initialData.tipo_cabina || '',
-        publicado_marketplace: initialData.publicado_marketplace || false, // <--- NUEVO CAMPO
+        publicado_marketplace: initialData.publicado_marketplace || false,
       });
 
-      if (!VEHICLE_TYPES.includes(initialData.type) && initialData.type) setIsOtherType(true);
-      if (!FUEL_TYPES.includes(initialData.fuel_type) && initialData.fuel_type) setIsOtherFuel(true);
-      if (!TRANSMISSION_TYPES.includes(initialData.transmission) && initialData.transmission) setIsOtherTransmission(true);
-      if (!CABIN_TYPES.includes(initialData.tipo_cabina) && initialData.tipo_cabina) setIsOtherCabin(true);
+      if (initialData.tipo_cabina && !CABIN_TYPES.includes(initialData.tipo_cabina)) {
+        setIsOtherCabin(true);
+        setFormData(prev => ({ ...prev, tipo_cabina: initialData.tipo_cabina }));
+      }
 
       if (initialData.custom_fields && initialData.custom_fields.length > 0) {
         const custom = {};
@@ -118,33 +125,22 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
     }
   }, [initialData]);
 
+  const formatNumber = (value) => {
+    if (!value) return '';
+    const num = value.toString().replace(/,/g, '');
+    if (isNaN(num) || num === '') return '';
+    return parseInt(num, 10).toLocaleString('es-ES');
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'type') {
-      if (value === 'Otro') {
-        setIsOtherType(true);
-        setFormData(prev => ({ ...prev, type: '' }));
-      } else {
-        setIsOtherType(false);
-        setFormData(prev => ({ ...prev, type: value }));
-      }
-    } else if (name === 'fuel_type') {
-      if (value === 'Otro') {
-        setIsOtherFuel(true);
-        setFormData(prev => ({ ...prev, fuel_type: '' }));
-      } else {
-        setIsOtherFuel(false);
-        setFormData(prev => ({ ...prev, fuel_type: value }));
-      }
-    } else if (name === 'transmission') {
-      if (value === 'Otro') {
-        setIsOtherTransmission(true);
-        setFormData(prev => ({ ...prev, transmission: '' }));
-      } else {
-        setIsOtherTransmission(false);
-        setFormData(prev => ({ ...prev, transmission: value }));
-      }
-    } else if (name === 'tipo_cabina') {
+
+    if (name === 'mileage') {
+      setFormData(prev => ({ ...prev, mileage: value }));
+      return;
+    }
+
+    if (name === 'tipo_cabina') {
       if (value === 'Otro') {
         setIsOtherCabin(true);
         setFormData(prev => ({ ...prev, tipo_cabina: '' }));
@@ -152,20 +148,21 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
         setIsOtherCabin(false);
         setFormData(prev => ({ ...prev, tipo_cabina: value }));
       }
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleMileageBlur = () => {
+    if (formData.mileage) {
+      const raw = formData.mileage.replace(/,/g, '');
+      if (!isNaN(raw) && raw !== '') {
+        setFormData(prev => ({ ...prev, mileage: formatNumber(raw) }));
+      }
     }
   };
 
-  const handleOtherTypeChange = (e) => {
-    setFormData(prev => ({ ...prev, type: e.target.value }));
-  };
-  const handleOtherFuelChange = (e) => {
-    setFormData(prev => ({ ...prev, fuel_type: e.target.value }));
-  };
-  const handleOtherTransmissionChange = (e) => {
-    setFormData(prev => ({ ...prev, transmission: e.target.value }));
-  };
   const handleOtherCabinChange = (e) => {
     setFormData(prev => ({ ...prev, tipo_cabina: e.target.value }));
   };
@@ -190,7 +187,8 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
       setErrorMessage('Año inválido');
       return false;
     }
-    if (formData.mileage < 0) {
+    const mileageRaw = parseFloat(formData.mileage.replace(/,/g, ''));
+    if (mileageRaw < 0) {
       setErrorMessage('El kilometraje no puede ser negativo');
       return false;
     }
@@ -216,7 +214,7 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
       const vehiclePayload = {
         ...formData,
         year: parseInt(formData.year),
-        mileage: parseInt(formData.mileage),
+        mileage: parseInt(formData.mileage.replace(/,/g, '')),
         price: parseFloat(formData.price),
         has_ac: formData.has_ac,
         vidrios_electricos: formData.vidrios_electricos,
@@ -224,7 +222,7 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
         cuatro_por_cuatro: formData.cuatro_por_cuatro,
         negociable: formData.negociable,
         tipo_cabina: formData.tipo_cabina,
-        publicado_marketplace: formData.publicado_marketplace, // <--- NUEVO CAMPO
+        publicado_marketplace: formData.publicado_marketplace,
       };
 
       const customPayload = {};
@@ -238,6 +236,15 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
 
       if (formData.color && !colorSuggestions.includes(formData.color)) {
         setColorSuggestions(prev => [...prev, formData.color]);
+      }
+      if (formData.type && !typeSuggestions.includes(formData.type)) {
+        setTypeSuggestions(prev => [...prev, formData.type]);
+      }
+      if (formData.fuel_type && !fuelSuggestions.includes(formData.fuel_type)) {
+        setFuelSuggestions(prev => [...prev, formData.fuel_type]);
+      }
+      if (formData.transmission && !transmissionSuggestions.includes(formData.transmission)) {
+        setTransmissionSuggestions(prev => [...prev, formData.transmission]);
       }
 
       if (isEdit) {
@@ -263,11 +270,8 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
           cuatro_por_cuatro: false,
           negociable: false,
           tipo_cabina: '',
-          publicado_marketplace: false, // <--- NUEVO CAMPO
+          publicado_marketplace: false,
         });
-        setIsOtherType(false);
-        setIsOtherFuel(false);
-        setIsOtherTransmission(false);
         setIsOtherCabin(false);
         const resetCustom = {};
         customFieldDefinitions.forEach(f => { resetCustom[f.id] = ''; });
@@ -346,277 +350,261 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* Tipo de vehículo */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Tipo de vehículo *</label>
-          <select
-            name="type"
-            value={isOtherType ? 'Otro' : formData.type}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          >
-            <option value="">Seleccione...</option>
-            {VEHICLE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            <option value="Otro">Otro (especificar)</option>
-          </select>
-          {isOtherType && (
+        {/* COLUMNA IZQUIERDA */}
+        <div className="space-y-4">
+          {/* Tipo de vehículo */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Tipo de vehículo *</label>
             <input
               type="text"
-              placeholder="Especificar tipo"
+              name="type"
+              list="type-suggestions"
               value={formData.type}
-              onChange={handleOtherTypeChange}
-              className="mt-1 w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              onChange={handleInputChange}
+              placeholder="Ej. Camioneta, Sedán, Auto..."
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
             />
-          )}
-        </div>
+            <datalist id="type-suggestions">
+              {typeSuggestions.map(t => <option key={t} value={t} />)}
+            </datalist>
+          </div>
 
-        {/* Marca */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Marca *</label>
-          <input
-            type="text"
-            name="brand"
-            value={formData.brand}
-            onChange={handleInputChange}
-            placeholder="Ej. Toyota"
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-        </div>
-
-        {/* Color */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Color *</label>
-          <input
-            type="text"
-            name="color"
-            list="color-suggestions"
-            value={formData.color}
-            onChange={handleInputChange}
-            placeholder="Ej. Rojo, Azul, Blanco..."
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-          <datalist id="color-suggestions">
-            {colorSuggestions.map(c => <option key={c} value={c} />)}
-          </datalist>
-        </div>
-
-        {/* Modelo */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Modelo *</label>
-          <input
-            type="text"
-            name="model"
-            value={formData.model}
-            onChange={handleInputChange}
-            placeholder="Ej. Corolla"
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-        </div>
-
-        {/* Año */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Año *</label>
-          <input
-            type="number"
-            name="year"
-            value={formData.year}
-            onChange={handleInputChange}
-            placeholder="2020"
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-        </div>
-
-        {/* Kilometraje */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Kilometraje (km) *</label>
-          <input
-            type="number"
-            name="mileage"
-            value={formData.mileage}
-            onChange={handleInputChange}
-            placeholder="45000"
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-        </div>
-
-        {/* Precio */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Precio ($) *</label>
-          <input
-            type="number"
-            name="price"
-            value={formData.price}
-            onChange={handleInputChange}
-            placeholder="18500"
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-        </div>
-
-        {/* Motor */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Motor (opcional)</label>
-          <input
-            type="text"
-            name="engine"
-            value={formData.engine}
-            onChange={handleInputChange}
-            placeholder="2.8L Diésel"
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-          />
-        </div>
-
-        {/* Combustible */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Tipo de combustible *</label>
-          <select
-            name="fuel_type"
-            value={isOtherFuel ? 'Otro' : formData.fuel_type}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          >
-            <option value="">Seleccione...</option>
-            {FUEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            <option value="Otro">Otro (especificar)</option>
-          </select>
-          {isOtherFuel && (
+          {/* Color */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Color *</label>
             <input
               type="text"
-              placeholder="Especificar combustible"
+              name="color"
+              list="color-suggestions"
+              value={formData.color}
+              onChange={handleInputChange}
+              placeholder="Ej. Rojo, Azul, Blanco..."
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
+            />
+            <datalist id="color-suggestions">
+              {colorSuggestions.map(c => <option key={c} value={c} />)}
+            </datalist>
+          </div>
+
+          {/* Año */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Año *</label>
+            <input
+              type="number"
+              name="year"
+              value={formData.year}
+              onChange={handleInputChange}
+              placeholder="2020"
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
+            />
+          </div>
+
+          {/* Precio */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Precio ($) *</label>
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={handleInputChange}
+              placeholder="18500"
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
+            />
+          </div>
+
+          {/* Combustible */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Tipo de combustible *</label>
+            <input
+              type="text"
+              name="fuel_type"
+              list="fuel-suggestions"
               value={formData.fuel_type}
-              onChange={handleOtherFuelChange}
-              className="mt-1 w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              onChange={handleInputChange}
+              placeholder="Ej. Gasolina, Diésel, Eléctrico..."
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
             />
-          )}
-        </div>
+            <datalist id="fuel-suggestions">
+              {fuelSuggestions.map(t => <option key={t} value={t} />)}
+            </datalist>
+          </div>
 
-        {/* Transmisión */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Transmisión *</label>
-          <select
-            name="transmission"
-            value={isOtherTransmission ? 'Otro' : formData.transmission}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          >
-            <option value="">Seleccione...</option>
-            {TRANSMISSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            <option value="Otro">Otro (especificar)</option>
-          </select>
-          {isOtherTransmission && (
+          {/* Placa */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Placa *</label>
             <input
               type="text"
-              placeholder="Especificar transmisión"
+              name="plate"
+              value={formData.plate}
+              onChange={handleInputChange}
+              placeholder="ABC123"
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
+            />
+          </div>
+
+          {/* Tipo de cabina */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Tipo de cabina</label>
+            <select
+              name="tipo_cabina"
+              value={isOtherCabin ? 'Otro' : formData.tipo_cabina}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+            >
+              <option value="">Seleccione...</option>
+              {CABIN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            {isOtherCabin && (
+              <input
+                type="text"
+                placeholder="Especificar tipo de cabina"
+                value={formData.tipo_cabina}
+                onChange={handleOtherCabinChange}
+                className="mt-1 w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              />
+            )}
+          </div>
+
+          {/* SWITCHES */}
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Aire acondicionado</span>
+              <Switch
+                value={formData.has_ac}
+                onChange={(val) => handleSwitchChange('has_ac', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Vidrios eléctricos</span>
+              <Switch
+                value={formData.vidrios_electricos}
+                onChange={(val) => handleSwitchChange('vidrios_electricos', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Retrovisores eléctricos</span>
+              <Switch
+                value={formData.retrovisores_electricos}
+                onChange={(val) => handleSwitchChange('retrovisores_electricos', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">4x4</span>
+              <Switch
+                value={formData.cuatro_por_cuatro}
+                onChange={(val) => handleSwitchChange('cuatro_por_cuatro', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Negociable</span>
+              <Switch
+                value={formData.negociable}
+                onChange={(val) => handleSwitchChange('negociable', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Publicado en Marketplace</span>
+              <Switch
+                value={formData.publicado_marketplace}
+                onChange={(val) => handleSwitchChange('publicado_marketplace', val)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* COLUMNA DERECHA */}
+        <div className="space-y-4">
+          {/* Marca */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Marca *</label>
+            <input
+              type="text"
+              name="brand"
+              value={formData.brand}
+              onChange={handleInputChange}
+              placeholder="Ej. Toyota"
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
+            />
+          </div>
+
+          {/* Modelo */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Modelo *</label>
+            <input
+              type="text"
+              name="model"
+              value={formData.model}
+              onChange={handleInputChange}
+              placeholder="Ej. Corolla"
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
+            />
+          </div>
+
+          {/* Kilometraje */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Kilometraje (km) *</label>
+            <input
+              type="text"
+              name="mileage"
+              value={formData.mileage}
+              onChange={handleInputChange}
+              onBlur={handleMileageBlur}
+              placeholder="Ej. 356250"
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
+            />
+          </div>
+
+          {/* Motor */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Motor (opcional)</label>
+            <input
+              type="text"
+              name="engine"
+              value={formData.engine}
+              onChange={handleInputChange}
+              placeholder="2.8L Diésel"
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+            />
+          </div>
+
+          {/* Transmisión */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Transmisión *</label>
+            <input
+              type="text"
+              name="transmission"
+              list="transmission-suggestions"
               value={formData.transmission}
-              onChange={handleOtherTransmissionChange}
-              className="mt-1 w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              onChange={handleInputChange}
+              placeholder="Ej. Manual, Automática, CVT..."
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
+              required
             />
-          )}
-        </div>
+            <datalist id="transmission-suggestions">
+              {transmissionSuggestions.map(t => <option key={t} value={t} />)}
+            </datalist>
+          </div>
 
-        {/* Placa */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Placa *</label>
-          <input
-            type="text"
-            name="plate"
-            value={formData.plate}
-            onChange={handleInputChange}
-            placeholder="ABC123"
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            required
-          />
-        </div>
-
-        {/* Estado */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Estado *</label>
-          <select
-            name="status"
-            value={formData.status}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-          >
-            {STATUS_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-
-        {/* Tipo de cabina */}
-        <div>
-          <label className="block text-white/70 text-sm font-medium mb-1">Tipo de cabina</label>
-          <select
-            name="tipo_cabina"
-            value={isOtherCabin ? 'Otro' : formData.tipo_cabina}
-            onChange={handleInputChange}
-            className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-          >
-            <option value="">Seleccione...</option>
-            {CABIN_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          {isOtherCabin && (
-            <input
-              type="text"
-              placeholder="Especificar tipo de cabina"
-              value={formData.tipo_cabina}
-              onChange={handleOtherCabinChange}
-              className="mt-1 w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
-            />
-          )}
-        </div>
-
-        {/* Switches booleanos */}
-        <div className="flex flex-col gap-3 pt-2">
-          <div className="flex items-center justify-between">
-            <span className="text-white/70 text-sm">Aire acondicionado</span>
-            <Switch
-              value={formData.has_ac}
-              onChange={(val) => handleSwitchChange('has_ac', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-white/70 text-sm">Vidrios eléctricos</span>
-            <Switch
-              value={formData.vidrios_electricos}
-              onChange={(val) => handleSwitchChange('vidrios_electricos', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-white/70 text-sm">Retrovisores eléctricos</span>
-            <Switch
-              value={formData.retrovisores_electricos}
-              onChange={(val) => handleSwitchChange('retrovisores_electricos', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-white/70 text-sm">4x4</span>
-            <Switch
-              value={formData.cuatro_por_cuatro}
-              onChange={(val) => handleSwitchChange('cuatro_por_cuatro', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-white/70 text-sm">Negociable</span>
-            <Switch
-              value={formData.negociable}
-              onChange={(val) => handleSwitchChange('negociable', val)}
-            />
-          </div>
-          {/* NUEVO SWITCH: Publicado en Marketplace */}
-          <div className="flex items-center justify-between">
-            <span className="text-white/70 text-sm">Publicado en Marketplace</span>
-            <Switch
-              value={formData.publicado_marketplace}
-              onChange={(val) => handleSwitchChange('publicado_marketplace', val)}
-            />
+          {/* Estado */}
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-1">Estado *</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+            >
+              {STATUS_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
           </div>
         </div>
       </div>

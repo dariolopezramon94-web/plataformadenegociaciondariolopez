@@ -119,6 +119,58 @@ export async function getDistinctColors() {
 }
 
 // ==============================
+// OBTENER TIPOS ÚNICOS (para sugerencias en datalist)
+// ==============================
+export async function getDistinctTypes() {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('type')
+    .not('type', 'is', null)
+    .neq('type', '');
+  if (error) throw error;
+  return [...new Set(data.map(item => item.type).filter(Boolean))];
+}
+
+// ==============================
+// OBTENER COMBUSTIBLES ÚNICOS (para sugerencias en datalist)
+// ==============================
+export async function getDistinctFuelTypes() {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('fuel_type')
+    .not('fuel_type', 'is', null)
+    .neq('fuel_type', '');
+  if (error) throw error;
+  return [...new Set(data.map(item => item.fuel_type).filter(Boolean))];
+}
+
+// ==============================
+// OBTENER TRANSMISIONES ÚNICAS (para sugerencias en datalist)
+// ==============================
+export async function getDistinctTransmissions() {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('transmission')
+    .not('transmission', 'is', null)
+    .neq('transmission', '');
+  if (error) throw error;
+  return [...new Set(data.map(item => item.transmission).filter(Boolean))];
+}
+
+// ==============================
+// OBTENER TIPOS DE CABINA ÚNICOS (para sugerencias en datalist)
+// ==============================
+export async function getDistinctCabins() {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('tipo_cabina')
+    .not('tipo_cabina', 'is', null)
+    .neq('tipo_cabina', '');
+  if (error) throw error;
+  return [...new Set(data.map(item => item.tipo_cabina).filter(Boolean))];
+}
+
+// ==============================
 // ACTUALIZAR VEHÍCULO
 // ==============================
 export async function updateVehicle(id, data) {
@@ -155,32 +207,23 @@ export async function changeVehicleStatus(id, status, soldBy = null) {
 }
 
 // ==============================
-// ELIMINAR VEHÍCULO (con eliminación en cascada de sales)
+// ELIMINAR VEHÍCULO
 // ==============================
 export async function deleteVehicle(id) {
-  // Primero eliminar el registro de venta si existe
-  const { error: deleteSaleError } = await supabase
+  // 1. Eliminar registro en sales si existe
+  const { error: saleError } = await supabase
     .from('sales')
     .delete()
     .eq('vehicle_id', id);
-
-  if (deleteSaleError) {
-    console.error('Error al eliminar registro de venta:', deleteSaleError);
-    throw deleteSaleError;
+  if (saleError) {
+    console.warn('No se pudo eliminar de sales (puede que no exista):', saleError);
   }
 
-  // Luego eliminar el vehículo
-  const { error: deleteVehicleError } = await supabase
+  const { error } = await supabase
     .from('vehicles')
     .delete()
     .eq('id', id);
-
-  if (deleteVehicleError) {
-    console.error('Error al eliminar vehículo:', deleteVehicleError);
-    throw deleteVehicleError;
-  }
-
-  return true;
+  if (error) throw error;
 }
 
 // ==============================

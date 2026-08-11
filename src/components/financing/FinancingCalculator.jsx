@@ -1,6 +1,6 @@
 // src/components/financing/FinancingCalculator.jsx
 import React from 'react';
-import { Calculator, DollarSign, Percent, Wallet, Calendar, XCircle } from 'lucide-react';
+import { Calculator, DollarSign, Percent, Wallet, Calendar, XCircle, Clipboard } from 'lucide-react';
 import { useFinancing } from '../../hooks/useFinancing';
 import { formatCurrency } from '../../services/financingService';
 
@@ -31,6 +31,21 @@ export function FinancingCalculator() {
 
   const cardClass = 'bg-white/5 border border-white/10 rounded-xl p-3.5';
 
+  const copyResults = () => {
+    if (!results) return;
+
+    const priceNum = parseFloat(price) || 0;
+    const downAmount = parseFloat(downPaymentAmount) || 0;
+    const downPercent = parseFloat(downPaymentPercent) || 0;
+
+    const text = `Costo del vehículo: ${formatCurrency(priceNum)}
+Entrada: ${formatCurrency(downAmount)} (${downPercent}%)
+Plazo de financiamiento: ${results.termMonths} meses
+Cuota mensual: ${formatCurrency(results.monthlyPayment)}`;
+
+    navigator.clipboard.writeText(text);
+  };
+
   return (
     <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-5 shadow-2xl space-y-3 max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-1">
@@ -43,7 +58,7 @@ export function FinancingCalculator() {
           <div>
             <label className={labelClass}>
               <DollarSign className="w-3.5 h-3.5" aria-hidden="true" />
-              Precio del vehículo
+              Costo del vehículo
             </label>
             <input
               type="number"
@@ -76,7 +91,6 @@ export function FinancingCalculator() {
           Entrada
         </label>
         <div className="grid grid-cols-2 gap-3">
-          {/* Primero el monto en dólares, luego el porcentaje */}
           <div>
             <input
               type="number"
@@ -108,7 +122,7 @@ export function FinancingCalculator() {
       <div className={cardClass}>
         <label className={labelClass}>
           <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
-          Plazo (meses)
+          Plazo de financiamiento (meses)
         </label>
         <input
           type="number"
@@ -127,18 +141,29 @@ export function FinancingCalculator() {
           Calcular
         </button>
         {hasResults && (
-          <button
-            onClick={clearResults}
-            className="py-2.5 px-4 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md text-red-300 font-medium rounded-xl border border-red-500/30 shadow-lg transition-all duration-200 text-sm flex items-center gap-1"
-            title="Limpiar resultados"
-          >
-            <XCircle className="w-4 h-4" />
-            Limpiar
-          </button>
+          <>
+            <button
+              onClick={clearResults}
+              className="py-2.5 px-4 bg-red-500/20 hover:bg-red-500/30 backdrop-blur-md text-red-300 font-medium rounded-xl border border-red-500/30 shadow-lg transition-all duration-200 text-sm flex items-center gap-1"
+              title="Limpiar resultados"
+            >
+              <XCircle className="w-4 h-4" />
+              Limpiar
+            </button>
+            {results && (
+              <button
+                onClick={copyResults}
+                className="py-2.5 px-4 bg-blue-500/20 hover:bg-blue-500/30 backdrop-blur-md text-blue-300 font-medium rounded-xl border border-blue-500/30 shadow-lg transition-all duration-200 text-sm flex items-center gap-1"
+                title="Copiar resultados"
+              >
+                <Clipboard className="w-4 h-4" />
+                Copiar
+              </button>
+            )}
+          </>
         )}
       </div>
 
-      {/* Nuevo disclaimer */}
       <div className="text-[10px] text-white/30 text-center">
         Los cálculos son referenciales. Verifique los resultados antes de usarlos
       </div>
