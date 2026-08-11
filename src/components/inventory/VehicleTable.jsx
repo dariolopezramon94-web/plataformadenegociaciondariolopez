@@ -1,7 +1,17 @@
 import React from 'react';
 import { VehicleRow } from './VehicleRow';
 
-export function VehicleTable({ vehicles, onStatusChange, onEdit, onDelete, onTogglePublicado, loading }) {
+export function VehicleTable({
+  vehicles,
+  onStatusChange,
+  onEdit,
+  onDelete,
+  onTogglePublicado,
+  onToggleInformacionCompleta,
+  onToggleFotografiado,
+  loading,
+  onNotification,
+}) {
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -28,6 +38,9 @@ export function VehicleTable({ vehicles, onStatusChange, onEdit, onDelete, onTog
           onEdit={onEdit}
           onDelete={onDelete}
           onTogglePublicado={onTogglePublicado}
+          onToggleInformacionCompleta={onToggleInformacionCompleta}
+          onToggleFotografiado={onToggleFotografiado}
+          onNotification={onNotification}
         />
       ))}
     </div>

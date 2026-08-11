@@ -1,7 +1,19 @@
 import { supabase } from './supabaseClient';
 
 // ==============================
-// OBTENER VEHÍCULOS
+// FUNCIÓN AUXILIAR PARA FORMATEAR KILOMETRAJE
+// ==============================
+function formatMileage(mileage) {
+  if (!mileage) return '0 km';
+  if (mileage < 1000) {
+    return `${mileage} km`;
+  }
+  const miles = Math.round(mileage / 1000);
+  return `${miles} mil km`;
+}
+
+// ==============================
+// OBTENER VEHÍCULOS (CON FILTROS COMPLETOS)
 // ==============================
 export async function getVehicles(filters = {}) {
   let query = supabase
@@ -24,9 +36,19 @@ export async function getVehicles(filters = {}) {
       .lte('created_at', endDate);
   }
 
-  if (filters.publicado !== undefined && filters.publicado !== 'todos') {
+  if (filters.publicado && filters.publicado !== 'todos') {
     const isPublished = filters.publicado === 'si';
     query = query.eq('publicado_marketplace', isPublished);
+  }
+
+  if (filters.informacion && filters.informacion !== 'todos') {
+    const isComplete = filters.informacion === 'completa';
+    query = query.eq('informacion_completa', isComplete);
+  }
+
+  if (filters.fotografiado && filters.fotografiado !== 'todos') {
+    const isPhotographed = filters.fotografiado === 'si';
+    query = query.eq('fotografiado', isPhotographed);
   }
 
   const { data, error } = await query;
@@ -119,7 +141,7 @@ export async function getDistinctColors() {
 }
 
 // ==============================
-// OBTENER TIPOS ÚNICOS (para sugerencias en datalist)
+// OBTENER TIPOS ÚNICOS (para sugerencias)
 // ==============================
 export async function getDistinctTypes() {
   const { data, error } = await supabase
@@ -132,7 +154,7 @@ export async function getDistinctTypes() {
 }
 
 // ==============================
-// OBTENER COMBUSTIBLES ÚNICOS (para sugerencias en datalist)
+// OBTENER COMBUSTIBLES ÚNICOS (para sugerencias)
 // ==============================
 export async function getDistinctFuelTypes() {
   const { data, error } = await supabase
@@ -145,7 +167,7 @@ export async function getDistinctFuelTypes() {
 }
 
 // ==============================
-// OBTENER TRANSMISIONES ÚNICAS (para sugerencias en datalist)
+// OBTENER TRANSMISIONES ÚNICAS (para sugerencias)
 // ==============================
 export async function getDistinctTransmissions() {
   const { data, error } = await supabase
@@ -158,7 +180,7 @@ export async function getDistinctTransmissions() {
 }
 
 // ==============================
-// OBTENER TIPOS DE CABINA ÚNICOS (para sugerencias en datalist)
+// OBTENER TIPOS DE CABINA ÚNICOS (para sugerencias)
 // ==============================
 export async function getDistinctCabins() {
   const { data, error } = await supabase
@@ -210,7 +232,6 @@ export async function changeVehicleStatus(id, status, soldBy = null) {
 // ELIMINAR VEHÍCULO
 // ==============================
 export async function deleteVehicle(id) {
-  // 1. Eliminar registro en sales si existe
   const { error: saleError } = await supabase
     .from('sales')
     .delete()
@@ -227,91 +248,194 @@ export async function deleteVehicle(id) {
 }
 
 // ==============================
-// GENERAR MENSAJE PERSONALIZADO (completo)
+// FUNCIONES DE MENSAJES CON FORMATO DE PRECIO Y KILOMETRAJE
 // ==============================
-export function generateCustomMessage(vehicle) {
-  const getArticle = (type) => {
-    if (!type) return 'el';
-    const lower = type.toLowerCase();
-    const femeninos = ['camioneta', 'suv', 'furgoneta'];
-    if (femeninos.includes(lower)) return 'la';
-    if (lower.endsWith('a')) return 'la';
-    return 'el';
-  };
+
+function getArticle(type) {
+  if (!type) return 'el';
+  const lower = type.toLowerCase();
+  const femeninos = ['camioneta', 'suv', 'furgoneta'];
+  if (femeninos.includes(lower)) return 'la';
+  if (lower.endsWith('a')) return 'la';
+  return 'el';
+}
+
+export async function generateCustomMessage(vehicle) {
+  const { data: config, error } = await supabase
+    .from('app_config')
+    .select('template_disponible')
+    .eq('id', 1)
+    .single();
+
+  if (error) {
+    console.error('Error al obtener plantilla de disponibilidad:', error);
+    return null;
+  }
+
+  const template = config?.template_disponible;
+  if (!template || template.trim() === '') {
+    return null;
+  }
 
   const article = getArticle(vehicle.type);
   const typeName = vehicle.type || 'vehículo';
-  const priceFormatted = vehicle.price.toLocaleString('es-ES');
-  const kmFormatted = vehicle.mileage.toLocaleString('es-ES');
-
-  let message = `Sí, ${article} ${typeName} ${vehicle.brand} ${vehicle.model} ${vehicle.year} sigue disponible.\n\n`;
-
-  message += `El precio es de $${priceFormatted}. `;
-
-  if (vehicle.negociable) {
-    message += `Si la compra es de contado, el precio es negociable; si desea financiarlo, también podemos conversar el precio, dependiendo del valor de la entrada. `;
-  } else {
-    message += `El precio es fijo. `;
-  }
-
+  const priceFormatted = `$${vehicle.price.toLocaleString('es-ES')}`;
+  const kmFormatted = formatMileage(vehicle.mileage);
   const engine = vehicle.engine || 'No especificado';
-  const hasAC = vehicle.has_ac ? ' y cuenta con aire acondicionado' : '';
-  message += `El vehículo tiene ${kmFormatted} km, es motor ${engine}${hasAC}. `;
-
-  const plate = vehicle.plate || '';
-  const firstChar = plate.charAt(0) || '?';
-  const lastTwo = plate.length >= 2 ? plate.slice(-2) : (plate || '??');
-  message += `La placa es ${firstChar}*${lastTwo}*. `;
-
+  const hasACText = vehicle.has_ac ? ' y cuenta con aire acondicionado' : '';
+  const plateFormatted = `${vehicle.plate?.charAt(0) || '?'}*${vehicle.plate?.slice(-2) || '??'}*`;
+  const negociableText = vehicle.negociable
+    ? 'Si la compra es de contado, el precio es negociable; si desea financiarlo, también podemos conversar el precio, dependiendo del valor de la entrada.'
+    : 'El precio es fijo.';
   const features = [];
   if (vehicle.cuatro_por_cuatro) features.push('es 4x4');
   if (vehicle.vidrios_electricos) features.push('tiene vidrios eléctricos');
   if (vehicle.retrovisores_electricos) features.push('tiene retrovisores eléctricos');
+  const featuresText = features.length > 0 ? `Además, ${features.join(', ')}.` : '';
 
-  if (features.length > 0) {
-    message += `Además, ${features.join(', ')}. `;
-  }
-
-  message += '\n\n';
-
-  message += `Si desea conocerlo y revisar todos los detalles, puede ver el vehículo directamente en Automotores Jara, ubicado en la Av. España 16-70. `;
-  message += `Al llegar, por favor indique que vio la publicación de Darío López en redes sociales. Como somos varios compañeros, esto nos ayudará a identificar su consulta y a brindarle una mejor atención.\n\n`;
-
-  message += `Si gusta, también puede escribirme y le ayudo con cualquier duda antes de que se acerque al patio.`;
-
-  return message;
+  return template
+    .replace(/{article}/g, article)
+    .replace(/{type}/g, typeName)
+    .replace(/{brand}/g, vehicle.brand)
+    .replace(/{model}/g, vehicle.model)
+    .replace(/{year}/g, vehicle.year)
+    .replace(/{price}/g, priceFormatted)
+    .replace(/{mileage}/g, kmFormatted)
+    .replace(/{engine}/g, engine)
+    .replace(/{has_ac_text}/g, hasACText)
+    .replace(/{plate_formatted}/g, plateFormatted)
+    .replace(/{negociable_text}/g, negociableText)
+    .replace(/{features_text}/g, featuresText);
 }
 
-// ==============================
-// GENERAR MENSAJE PARA "SOLO PRECIO"
-// ==============================
-export function generatePriceMessage(vehicle) {
-  const getArticle = (type) => {
-    if (!type) return 'el';
-    const lower = type.toLowerCase();
-    const femeninos = ['camioneta', 'suv', 'furgoneta'];
-    if (femeninos.includes(lower)) return 'la';
-    if (lower.endsWith('a')) return 'la';
-    return 'el';
-  };
+export async function generatePriceMessage(vehicle) {
+  const { data: config, error } = await supabase
+    .from('app_config')
+    .select('template_precio')
+    .eq('id', 1)
+    .single();
+
+  if (error) {
+    console.error('Error al obtener plantilla de precio:', error);
+    return null;
+  }
+
+  const template = config?.template_precio;
+  if (!template || template.trim() === '') {
+    return null;
+  }
 
   const article = getArticle(vehicle.type);
   const typeName = vehicle.type || 'vehículo';
-  const priceFormatted = vehicle.price.toLocaleString('es-ES');
-  const kmFormatted = vehicle.mileage.toLocaleString('es-ES');
+  const priceFormatted = `$${vehicle.price.toLocaleString('es-ES')}`;
+  const kmFormatted = formatMileage(vehicle.mileage);
   const engine = vehicle.engine || 'No especificado';
-  const hasAC = vehicle.has_ac ? ' y cuenta con aire acondicionado' : '';
+  const hasACText = vehicle.has_ac ? ' y cuenta con aire acondicionado' : '';
   const negociable = vehicle.negociable ? 'negociable' : 'no negociable';
 
-  let message = `El precio de ${article} ${typeName} ${vehicle.brand} ${vehicle.model} ${vehicle.year} es de $${priceFormatted} ${negociable}.\n\n`;
+  return template
+    .replace(/{article}/g, article)
+    .replace(/{type}/g, typeName)
+    .replace(/{brand}/g, vehicle.brand)
+    .replace(/{model}/g, vehicle.model)
+    .replace(/{year}/g, vehicle.year)
+    .replace(/{price}/g, priceFormatted)
+    .replace(/{mileage}/g, kmFormatted)
+    .replace(/{engine}/g, engine)
+    .replace(/{transmission}/g, vehicle.transmission)
+    .replace(/{has_ac_text}/g, hasACText)
+    .replace(/{negociable}/g, negociable);
+}
 
-  message += `Tiene ${kmFormatted} km, motor ${engine}, transmisión ${vehicle.transmission}${hasAC}.\n\n`;
+// ==============================
+// GENERAR TÍTULO PARA MARKETPLACE (SIN TIPO DE VEHÍCULO)
+// ==============================
+export function generateMarketplaceTitle(vehicle) {
+  const parts = [];
 
-  message += `Puede venir a verlo y revisarlo personalmente en Automotores Jara, ubicado en la Av. España 16-70.\n\n`;
+  if (vehicle.brand) parts.push(vehicle.brand);
+  if (vehicle.model) parts.push(vehicle.model);
+  if (vehicle.year) parts.push(vehicle.year);
 
-  message += `Al llegar al patio, por favor indique que vio la publicación del vehículo en redes sociales de Darío López, ya que somos varios compañeros y esto permitirá que le puedan brindar una mejor atención.`;
+  const features = [];
 
-  return message;
+  if (vehicle.type && vehicle.type.toLowerCase() === 'camioneta' && vehicle.tipo_cabina) {
+    features.push(vehicle.tipo_cabina);
+  }
+  if (vehicle.cuatro_por_cuatro) {
+    features.push('4x4');
+  }
+  if (vehicle.has_ac) {
+    features.push('A/C');
+  }
+  if (vehicle.transmission) {
+    features.push(vehicle.transmission);
+  }
+
+  if (features.length > 0) {
+    parts.push(features.join(' '));
+  }
+
+  let title = parts.join(' ');
+  title = title.replace(/\s+/g, ' ').trim();
+
+  return title;
+}
+
+// ==============================
+// GENERAR DESCRIPCIÓN PARA MARKETPLACE (FORMATO EN LISTA)
+// ==============================
+export function generateDescription(vehicle) {
+  const lines = [];
+
+  // Línea 1: Marca + Modelo + Año (sin tipo)
+  const brand = vehicle.brand || '';
+  const model = vehicle.model || '';
+  const year = vehicle.year || '';
+  let line1 = `${brand} ${model} ${year}`.trim();
+  if (line1.length > 0) {
+    line1 = line1.charAt(0).toUpperCase() + line1.slice(1);
+  }
+  lines.push(line1);
+
+  // Línea vacía para separación
+  lines.push('');
+
+  // Motor
+  if (vehicle.engine) {
+    lines.push(`Motor ${vehicle.engine}`);
+  }
+
+  // Kilometraje
+  if (vehicle.mileage) {
+    const kmFormatted = formatMileage(vehicle.mileage);
+    lines.push(kmFormatted);
+  }
+
+  // Transmisión
+  if (vehicle.transmission) {
+    lines.push(`Transmisión ${vehicle.transmission}`);
+  }
+
+  // Aire acondicionado
+  if (vehicle.has_ac) {
+    lines.push('Aire acondicionado');
+  }
+
+  // Vidrios eléctricos
+  if (vehicle.vidrios_electricos) {
+    lines.push('Vidrios eléctricos');
+  }
+
+  // Retrovisores eléctricos
+  if (vehicle.retrovisores_electricos) {
+    lines.push('Retrovisores eléctricos');
+  }
+
+  // No incluir 4x4, cabina, negociable ni placa
+
+  // Unir líneas con saltos de línea
+  return lines.join('\n');
 }
 
 // ==============================

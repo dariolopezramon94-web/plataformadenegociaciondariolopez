@@ -1,4 +1,3 @@
-// src/hooks/useFinancing.js
 import { useState, useCallback } from 'react';
 import {
   calculateFinancing,
@@ -81,7 +80,6 @@ export function useFinancing() {
     });
   }, [price, downPaymentAmount, interestRate, termMonths]);
 
-  // Función para limpiar resultados y errores
   const clearResults = useCallback(() => {
     setResults(null);
     setError('');

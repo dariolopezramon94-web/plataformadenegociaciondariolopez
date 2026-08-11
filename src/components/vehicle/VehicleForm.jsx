@@ -53,6 +53,8 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
     negociable: false,
     tipo_cabina: '',
     publicado_marketplace: false,
+    informacion_completa: false,
+    fotografiado: false,
   });
 
   const [customValues, setCustomValues] = useState({});
@@ -87,14 +89,14 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
 
   useEffect(() => {
     if (initialData) {
-      const formattedMileage = initialData.mileage ? formatNumber(initialData.mileage) : '';
+      const mileageInMiles = initialData.mileage ? (initialData.mileage / 1000).toFixed(1) : '';
       setFormData({
         type: initialData.type || '',
         brand: initialData.brand || '',
         model: initialData.model || '',
         color: initialData.color || '',
         year: initialData.year || '',
-        mileage: formattedMileage,
+        mileage: mileageInMiles,
         price: initialData.price || '',
         engine: initialData.engine || '',
         fuel_type: initialData.fuel_type || '',
@@ -108,6 +110,8 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
         negociable: initialData.negociable || false,
         tipo_cabina: initialData.tipo_cabina || '',
         publicado_marketplace: initialData.publicado_marketplace || false,
+        informacion_completa: initialData.informacion_completa || false,
+        fotografiado: initialData.fotografiado || false,
       });
 
       if (initialData.tipo_cabina && !CABIN_TYPES.includes(initialData.tipo_cabina)) {
@@ -125,40 +129,17 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
     }
   }, [initialData]);
 
-  const formatNumber = (value) => {
-    if (!value) return '';
-    const num = value.toString().replace(/,/g, '');
-    if (isNaN(num) || num === '') return '';
-    return parseInt(num, 10).toLocaleString('es-ES');
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
-    if (name === 'mileage') {
-      setFormData(prev => ({ ...prev, mileage: value }));
-      return;
-    }
-
-    if (name === 'tipo_cabina') {
-      if (value === 'Otro') {
-        setIsOtherCabin(true);
-        setFormData(prev => ({ ...prev, tipo_cabina: '' }));
-      } else {
-        setIsOtherCabin(false);
-        setFormData(prev => ({ ...prev, tipo_cabina: value }));
-      }
-      return;
-    }
-
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleMileageBlur = () => {
-    if (formData.mileage) {
-      const raw = formData.mileage.replace(/,/g, '');
-      if (!isNaN(raw) && raw !== '') {
-        setFormData(prev => ({ ...prev, mileage: formatNumber(raw) }));
+    const value = formData.mileage;
+    if (value) {
+      const num = parseFloat(value.replace(/,/g, ''));
+      if (!isNaN(num)) {
+        setFormData(prev => ({ ...prev, mileage: num.toFixed(1) }));
       }
     }
   };
@@ -211,10 +192,12 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
     }
 
     try {
+      const mileageInKm = parseFloat(formData.mileage.replace(/,/g, '')) * 1000;
+
       const vehiclePayload = {
         ...formData,
         year: parseInt(formData.year),
-        mileage: parseInt(formData.mileage.replace(/,/g, '')),
+        mileage: Math.round(mileageInKm),
         price: parseFloat(formData.price),
         has_ac: formData.has_ac,
         vidrios_electricos: formData.vidrios_electricos,
@@ -223,6 +206,8 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
         negociable: formData.negociable,
         tipo_cabina: formData.tipo_cabina,
         publicado_marketplace: formData.publicado_marketplace,
+        informacion_completa: formData.informacion_completa,
+        fotografiado: formData.fotografiado,
       };
 
       const customPayload = {};
@@ -271,6 +256,8 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
           negociable: false,
           tipo_cabina: '',
           publicado_marketplace: false,
+          informacion_completa: false,
+          fotografiado: false,
         });
         setIsOtherCabin(false);
         const resetCustom = {};
@@ -350,9 +337,7 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* COLUMNA IZQUIERDA */}
         <div className="space-y-4">
-          {/* Tipo de vehículo */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Tipo de vehículo *</label>
             <input
@@ -370,7 +355,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             </datalist>
           </div>
 
-          {/* Color */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Color *</label>
             <input
@@ -388,7 +372,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             </datalist>
           </div>
 
-          {/* Año */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Año *</label>
             <input
@@ -402,7 +385,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             />
           </div>
 
-          {/* Precio */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Precio ($) *</label>
             <input
@@ -416,7 +398,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             />
           </div>
 
-          {/* Combustible */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Tipo de combustible *</label>
             <input
@@ -434,7 +415,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             </datalist>
           </div>
 
-          {/* Placa */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Placa *</label>
             <input
@@ -448,7 +428,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             />
           </div>
 
-          {/* Tipo de cabina */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Tipo de cabina</label>
             <select
@@ -471,7 +450,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             )}
           </div>
 
-          {/* SWITCHES */}
           <div className="flex flex-col gap-3 pt-2">
             <div className="flex items-center justify-between">
               <span className="text-white/70 text-sm">Aire acondicionado</span>
@@ -515,12 +493,24 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
                 onChange={(val) => handleSwitchChange('publicado_marketplace', val)}
               />
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Información completa</span>
+              <Switch
+                value={formData.informacion_completa}
+                onChange={(val) => handleSwitchChange('informacion_completa', val)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-white/70 text-sm">Fotografiado</span>
+              <Switch
+                value={formData.fotografiado}
+                onChange={(val) => handleSwitchChange('fotografiado', val)}
+              />
+            </div>
           </div>
         </div>
 
-        {/* COLUMNA DERECHA */}
         <div className="space-y-4">
-          {/* Marca */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Marca *</label>
             <input
@@ -534,7 +524,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             />
           </div>
 
-          {/* Modelo */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Modelo *</label>
             <input
@@ -548,22 +537,23 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             />
           </div>
 
-          {/* Kilometraje */}
           <div>
-            <label className="block text-white/70 text-sm font-medium mb-1">Kilometraje (km) *</label>
+            <label className="block text-white/70 text-sm font-medium mb-1">Kilometraje (miles de km) *</label>
             <input
               type="text"
               name="mileage"
               value={formData.mileage}
               onChange={handleInputChange}
               onBlur={handleMileageBlur}
-              placeholder="Ej. 356250"
+              placeholder="Ej. 230.5 (equivale a 230,500 km)"
               className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
               required
             />
+            <div className="text-[10px] text-white/30 mt-1">
+              Ingrese el kilometraje en miles (ej: 230.5 = 230,500 km)
+            </div>
           </div>
 
-          {/* Motor */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Motor (opcional)</label>
             <input
@@ -576,7 +566,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             />
           </div>
 
-          {/* Transmisión */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Transmisión *</label>
             <input
@@ -594,7 +583,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
             </datalist>
           </div>
 
-          {/* Estado */}
           <div>
             <label className="block text-white/70 text-sm font-medium mb-1">Estado *</label>
             <select
@@ -609,7 +597,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
         </div>
       </div>
 
-      {/* Campos personalizados existentes */}
       {customFieldDefinitions.length > 0 && (
         <div className="mt-6 pt-6 border-t border-white/10">
           <h3 className="text-white/80 font-semibold mb-4">Características adicionales</h3>
@@ -640,7 +627,6 @@ export function VehicleForm({ onSubmit, initialData = null, isEdit = false, onDe
         </div>
       )}
 
-      {/* Agregar característica personalizada */}
       <div className="mt-4">
         <button
           type="button"

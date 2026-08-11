@@ -91,12 +91,12 @@ export function ConfigPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">
         Configuración
       </h1>
       <p className="text-white/60 text-sm">
-        Configura los proveedores de IA, las claves API y los prompts personalizados para la negociación.
+        Configura los proveedores de IA, claves API, prompts personalizados y plantillas de mensajes.
       </p>
 
       <form onSubmit={handleSave} className="space-y-6 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/20 p-6 shadow-2xl">
@@ -267,6 +267,47 @@ export function ConfigPage() {
                 rows={8}
                 className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 resize-y font-mono text-sm"
                 placeholder="Escribe el prompt para corregir respuestas del vendedor..."
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* SECCIÓN NUEVA: Plantillas de mensajes */}
+        <div className="border-b border-white/10 pb-4">
+          <h2 className="text-white font-semibold text-lg mb-3">Plantillas de mensajes para clientes</h2>
+          <p className="text-white/50 text-xs mb-4">
+            Edita las plantillas que se usan al copiar mensajes desde el catálogo. Usa los placeholders entre llaves para incluir datos del vehículo.
+            <br />
+            <span className="text-white/30 text-[10px]">
+              Placeholders disponibles: {'{article}'}, {'{type}'}, {'{brand}'}, {'{model}'}, {'{year}'}, {'{price}'}, {'{mileage}'}, {'{engine}'}, {'{transmission}'}, {'{has_ac_text}'}, {'{plate_formatted}'}, {'{negociable_text}'}, {'{negociable}'}, {'{features_text}'}
+            </span>
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-1">
+                Plantilla para mensaje de disponibilidad
+              </label>
+              <textarea
+                name="template_disponible"
+                value={config.template_disponible || ''}
+                onChange={handleChange}
+                rows={10}
+                className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 resize-y font-mono text-sm"
+                placeholder="Escribe la plantilla para el mensaje de disponibilidad..."
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-1">
+                Plantilla para mensaje de precio
+              </label>
+              <textarea
+                name="template_precio"
+                value={config.template_precio || ''}
+                onChange={handleChange}
+                rows={10}
+                className="w-full px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 resize-y font-mono text-sm"
+                placeholder="Escribe la plantilla para el mensaje de precio..."
               />
             </div>
           </div>

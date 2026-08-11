@@ -17,6 +17,8 @@ export async function getAppConfig() {
       business_location: '',
       system_prompt_generate: '',
       system_prompt_correct: '',
+      template_disponible: '',
+      template_precio: '',
     };
     const { data: newData, error: insertError } = await supabase
       .from('app_config')

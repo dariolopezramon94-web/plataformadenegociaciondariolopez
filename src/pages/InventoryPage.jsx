@@ -18,6 +18,8 @@ export function InventoryPage() {
     updateStatus,
     removeVehicle,
     togglePublicado,
+    toggleInformacionCompleta,
+    toggleFotografiado,
   } = useVehicles();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -95,7 +97,7 @@ export function InventoryPage() {
       )}
 
       <h1 className="text-xl sm:text-3xl font-bold text-white drop-shadow-lg">
-        Inventario de Vehículos
+        Catálogo de Vehículos
       </h1>
       <p className="text-white/60 text-sm">
         {totalItems} vehículos encontrados {totalPages > 1 && `(página ${currentPage} de ${totalPages})`}
@@ -120,7 +122,10 @@ export function InventoryPage() {
         onEdit={handleEdit}
         onDelete={handleDelete}
         onTogglePublicado={togglePublicado}
+        onToggleInformacionCompleta={toggleInformacionCompleta}
+        onToggleFotografiado={toggleFotografiado}
         loading={loading}
+        onNotification={showNotification}
       />
 
       <Pagination

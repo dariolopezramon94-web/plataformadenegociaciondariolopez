@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { generateCustomMessage, generatePriceMessage } from '../../services/vehicleService';
+import { generateCustomMessage, generatePriceMessage, generateMarketplaceTitle, generateDescription } from '../../services/vehicleService';
 
 const formatDate = (dateString) => {
   if (!dateString) return '-';
@@ -14,24 +14,70 @@ const formatDate = (dateString) => {
   });
 };
 
-export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onTogglePublicado }) {
+const formatMileage = (mileage) => {
+  if (!mileage) return '0 km';
+  if (mileage < 1000) {
+    return `${mileage} km`;
+  }
+  const miles = Math.round(mileage / 1000);
+  return `${miles} mil km`;
+};
+
+export function VehicleRow({
+  vehicle,
+  onStatusChange,
+  onEdit,
+  onDelete,
+  onTogglePublicado,
+  onToggleInformacionCompleta,
+  onToggleFotografiado,
+  onNotification,
+}) {
   const { isAdmin } = useAuth();
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [soldBy, setSoldBy] = useState('');
 
-  const copyFullMessage = () => {
-    const message = generateCustomMessage(vehicle);
+  const copyFullMessage = async () => {
+    const message = await generateCustomMessage(vehicle);
+    if (!message) {
+      onNotification('La plantilla para mensaje de disponibilidad no está configurada', 'error');
+      return;
+    }
     navigator.clipboard.writeText(message);
   };
 
-  const copyPriceMessage = () => {
-    const message = generatePriceMessage(vehicle);
+  const copyPriceMessage = async () => {
+    const message = await generatePriceMessage(vehicle);
+    if (!message) {
+      onNotification('La plantilla para mensaje de precio no está configurada', 'error');
+      return;
+    }
     navigator.clipboard.writeText(message);
+  };
+
+  const copyTitle = () => {
+    const title = generateMarketplaceTitle(vehicle);
+    navigator.clipboard.writeText(title);
+  };
+
+  const copyDescription = () => {
+    const description = generateDescription(vehicle);
+    navigator.clipboard.writeText(description);
   };
 
   const togglePublicado = () => {
     if (!isAdmin) return;
     onTogglePublicado(vehicle.id, vehicle.publicado_marketplace);
+  };
+
+  const toggleInformacionCompleta = () => {
+    if (!isAdmin) return;
+    onToggleInformacionCompleta(vehicle.id, vehicle.informacion_completa);
+  };
+
+  const toggleFotografiado = () => {
+    if (!isAdmin) return;
+    onToggleFotografiado(vehicle.id, vehicle.fotografiado);
   };
 
   const handleStatusChange = (newStatus) => {
@@ -79,16 +125,41 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
                vehicle.status === 'no_disponible' ? 'No disponible' :
                'Vendido'}
             </span>
+
             <span
               onClick={togglePublicado}
               className={`px-2 py-0.5 rounded-full text-xs border backdrop-blur-sm cursor-pointer select-none ${
                 vehicle.publicado_marketplace
                   ? 'bg-green-500/20 border-green-500/30 text-green-300'
-                  : 'bg-gray-500/20 border-gray-500/30 text-gray-300'
+                  : 'bg-red-500/20 border-red-500/30 text-red-300'
               } ${isAdmin ? 'hover:opacity-80' : 'cursor-default'}`}
               title={isAdmin ? (vehicle.publicado_marketplace ? 'Marcar como no publicado' : 'Marcar como publicado') : ''}
             >
               {vehicle.publicado_marketplace ? 'Publicado' : 'No publicado'}
+            </span>
+
+            <span
+              onClick={toggleInformacionCompleta}
+              className={`px-2 py-0.5 rounded-full text-xs border backdrop-blur-sm cursor-pointer select-none ${
+                vehicle.informacion_completa
+                  ? 'bg-green-500/20 border-green-500/30 text-green-300'
+                  : 'bg-red-500/20 border-red-500/30 text-red-300'
+              } ${isAdmin ? 'hover:opacity-80' : 'cursor-default'}`}
+              title={isAdmin ? (vehicle.informacion_completa ? 'Marcar como incompleta' : 'Marcar como completa') : ''}
+            >
+              {vehicle.informacion_completa ? 'Información completa' : 'Información incompleta'}
+            </span>
+
+            <span
+              onClick={toggleFotografiado}
+              className={`px-2 py-0.5 rounded-full text-xs border backdrop-blur-sm cursor-pointer select-none ${
+                vehicle.fotografiado
+                  ? 'bg-green-500/20 border-green-500/30 text-green-300'
+                  : 'bg-red-500/20 border-red-500/30 text-red-300'
+              } ${isAdmin ? 'hover:opacity-80' : 'cursor-default'}`}
+              title={isAdmin ? (vehicle.fotografiado ? 'Marcar como no fotografiado' : 'Marcar como fotografiado') : ''}
+            >
+              {vehicle.fotografiado ? 'Fotografiado' : 'No fotografiado'}
             </span>
           </div>
         </div>
@@ -132,6 +203,18 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
         >
           Copiar precio
         </button>
+        <button
+          onClick={copyTitle}
+          className="px-2 py-1 bg-green-500/20 backdrop-blur-sm hover:bg-green-500/30 text-green-300 text-xs rounded-lg border border-green-500/30 transition"
+        >
+          Copiar título
+        </button>
+        <button
+          onClick={copyDescription}
+          className="px-2 py-1 bg-purple-500/20 backdrop-blur-sm hover:bg-purple-500/30 text-purple-300 text-xs rounded-lg border border-purple-500/30 transition"
+        >
+          Copiar descripción
+        </button>
         {isAdmin && (
           <>
             <button
@@ -151,7 +234,7 @@ export function VehicleRow({ vehicle, onStatusChange, onEdit, onDelete, onToggle
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2 mt-3 text-white/50 text-xs">
-        <span>Kilometraje: {vehicle.mileage} km</span>
+        <span>Kilometraje: {formatMileage(vehicle.mileage)}</span>
         <span>Motor: {vehicle.engine || 'N/A'}</span>
         <span>Combustible: {vehicle.fuel_type}</span>
         <span>Aire: {vehicle.has_ac ? 'Sí' : 'No'}</span>

@@ -13,7 +13,13 @@ export function useVehicles() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({ status: 'todos', month: '', publicado: 'todos' });
+  const [filters, setFilters] = useState({
+    status: 'todos',
+    month: '',
+    publicado: 'todos',
+    informacion: 'todos',
+    fotografiado: 'todos',
+  });
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
@@ -102,13 +108,32 @@ export function useVehicles() {
     }
   }, [fetchVehicles]);
 
-  // Función para cambiar estado de publicación sin redirigir
   const togglePublicado = useCallback(async (id, currentValue) => {
     try {
       await updateVehicle(id, { publicado_marketplace: !currentValue });
       await fetchVehicles();
     } catch (err) {
       console.error('Error al cambiar estado de publicación:', err);
+      setError(err.message);
+    }
+  }, [fetchVehicles]);
+
+  const toggleInformacionCompleta = useCallback(async (id, currentValue) => {
+    try {
+      await updateVehicle(id, { informacion_completa: !currentValue });
+      await fetchVehicles();
+    } catch (err) {
+      console.error('Error al cambiar estado de información completa:', err);
+      setError(err.message);
+    }
+  }, [fetchVehicles]);
+
+  const toggleFotografiado = useCallback(async (id, currentValue) => {
+    try {
+      await updateVehicle(id, { fotografiado: !currentValue });
+      await fetchVehicles();
+    } catch (err) {
+      console.error('Error al cambiar estado de fotografiado:', err);
       setError(err.message);
     }
   }, [fetchVehicles]);
@@ -134,6 +159,8 @@ export function useVehicles() {
     updateStatus,
     editVehicle,
     togglePublicado,
+    toggleInformacionCompleta,
+    toggleFotografiado,
     removeVehicle,
   };
 }

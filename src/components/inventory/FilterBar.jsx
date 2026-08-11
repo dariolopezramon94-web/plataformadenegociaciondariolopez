@@ -13,8 +13,22 @@ export function FilterBar({ filters, setFilters }) {
     setFilters({ ...filters, publicado: e.target.value });
   };
 
+  const handleInformacionChange = (e) => {
+    setFilters({ ...filters, informacion: e.target.value });
+  };
+
+  const handleFotografiadoChange = (e) => {
+    setFilters({ ...filters, fotografiado: e.target.value });
+  };
+
   const clearFilters = () => {
-    setFilters({ status: 'todos', month: '', publicado: 'todos' });
+    setFilters({
+      status: 'todos',
+      month: '',
+      publicado: 'todos',
+      informacion: 'todos',
+      fotografiado: 'todos',
+    });
   };
 
   return (
@@ -64,6 +78,38 @@ export function FilterBar({ filters, setFilters }) {
           <option value="todos">Todos</option>
           <option value="si">Publicados</option>
           <option value="no">No publicados</option>
+        </select>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <label htmlFor="informacionFilter" className="text-white/80 text-sm font-medium">
+          Información:
+        </label>
+        <select
+          id="informacionFilter"
+          value={filters.informacion || 'todos'}
+          onChange={handleInformacionChange}
+          className="flex-1 sm:flex-none bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+        >
+          <option value="todos">Todos</option>
+          <option value="completa">Completa</option>
+          <option value="incompleta">Incompleta</option>
+        </select>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <label htmlFor="fotografiadoFilter" className="text-white/80 text-sm font-medium">
+          Fotografiado:
+        </label>
+        <select
+          id="fotografiadoFilter"
+          value={filters.fotografiado || 'todos'}
+          onChange={handleFotografiadoChange}
+          className="flex-1 sm:flex-none bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+        >
+          <option value="todos">Todos</option>
+          <option value="si">Fotografiado</option>
+          <option value="no">No fotografiado</option>
         </select>
       </div>
 
