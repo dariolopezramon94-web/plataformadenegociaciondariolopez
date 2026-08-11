@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { getAppConfig, updateAppConfig, testConnection } from '../services/configService';
+import { exportAllTables } from '../services/exportService';
 
 const STORAGE_KEY = 'config_sections_open';
 
@@ -11,6 +12,7 @@ const SECTIONS = [
   { id: 'prompts', title: 'Prompts personalizados para la IA' },
   { id: 'templates', title: 'Plantillas de mensajes para clientes' },
   { id: 'seo', title: 'Plantillas SEO (título y descripción)' },
+  { id: 'export', title: 'Respaldo de base de datos' },
 ];
 
 const PLACEHOLDERS = [
@@ -161,6 +163,7 @@ export function ConfigPage() {
       prompts: true,
       templates: true,
       seo: true,
+      export: true,
     };
   });
 
@@ -462,6 +465,31 @@ export function ConfigPage() {
                 placeholder="Escribe la plantilla para la descripción del vehículo..."
                 rows={10}
               />
+            </div>
+          </div>
+        );
+
+      case 'export':
+        return (
+          <div className="space-y-4">
+            <p className="text-white/50 text-xs">
+              Descarga un respaldo completo de la base de datos en formato CSV comprimido (ZIP).
+              Incluye todas las tablas principales: vehículos, ventas, conversaciones, perfiles, configuración, estadísticas de copias y valores personalizados.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <button
+                type="button"
+                onClick={exportAllTables}
+                className="px-6 py-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-lg border border-white/30 transition"
+              >
+                Descargar respaldo completo (ZIP)
+              </button>
+            </div>
+            <div className="text-[10px] text-white/30 mt-2">
+              El archivo se descargará con el nombre: backup_base_datos_YYYY-MM-DD.zip
+            </div>
+            <div className="text-[10px] text-white/20 mt-1">
+              Las tablas incluidas son: vehículos, ventas, conversaciones, perfiles, configuración, estadísticas de copias, valores personalizados y campos personalizados.
             </div>
           </div>
         );
