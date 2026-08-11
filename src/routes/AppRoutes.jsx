@@ -14,13 +14,9 @@ export function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta pública */}
         <Route path="/login" element={<LoginPage />} />
-        
-        {/* Redirección por defecto */}
         <Route path="/" element={<Navigate to="/inventario" replace />} />
 
-        {/* Inventario - accesible para todos los autenticados */}
         <Route
           path="/inventario"
           element={
@@ -32,7 +28,6 @@ export function AppRoutes() {
           }
         />
 
-        {/* Agregar vehículo - solo admin */}
         <Route
           path="/agregar-vehiculo"
           element={
@@ -44,7 +39,6 @@ export function AppRoutes() {
           }
         />
 
-        {/* Editar vehículo - solo admin */}
         <Route
           path="/editar-vehiculo/:id"
           element={
@@ -56,7 +50,6 @@ export function AppRoutes() {
           }
         />
 
-        {/* Negociación con IA - solo admin */}
         <Route
           path="/negociacion"
           element={
@@ -68,7 +61,6 @@ export function AppRoutes() {
           }
         />
 
-        {/* Configuración - solo admin */}
         <Route
           path="/configuracion"
           element={
@@ -80,11 +72,11 @@ export function AppRoutes() {
           }
         />
 
-        {/* Financiamiento - solo admin */}
+        {/* Calculadora accesible para todos los autenticados (admin y revisor) */}
         <Route
           path="/financiamiento"
           element={
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute>
               <Layout>
                 <FinancingPage />
               </Layout>
@@ -92,7 +84,6 @@ export function AppRoutes() {
           }
         />
 
-        {/* Ruta 404 */}
         <Route path="*" element={<div className="text-white text-center mt-10">Página no encontrada</div>} />
       </Routes>
     </BrowserRouter>

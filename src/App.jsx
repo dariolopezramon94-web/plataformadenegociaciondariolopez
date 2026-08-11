@@ -1,14 +1,18 @@
 import React from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppRoutes } from './routes/AppRoutes';
+import { useRealtimeNotifications } from './hooks/useRealtimeNotifications';
 
-console.log('App.jsx cargado');
+// Componente interno para usar el hook dentro del provider
+function AppContent() {
+  useRealtimeNotifications();
+  return <AppRoutes />;
+}
 
 function App() {
-  console.log('App renderizando');
   return (
     <AuthProvider>
-      <AppRoutes />
+      <AppContent />
     </AuthProvider>
   );
 }

@@ -23,8 +23,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     loadUser();
 
-    // Manejar correctamente el objeto de retorno de onAuthStateChange
-    const authListener = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Corrección: desestructurar correctamente la suscripción
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         await loadUser();
       } else if (event === 'SIGNED_OUT') {
@@ -32,11 +32,6 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     });
-
-    // Extraer la suscripcion del objeto de retorno
-    // En versiones modernas: { data: { subscription } }
-    // En versiones antiguas: { subscription: ... }
-    const subscription = authListener.data?.subscription || authListener.subscription;
 
     return () => {
       if (subscription && typeof subscription.unsubscribe === 'function') {

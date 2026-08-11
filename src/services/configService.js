@@ -1,5 +1,16 @@
 import { supabase } from './supabaseClient';
 
+// Valores por defecto para los nuevos templates
+const DEFAULT_TEMPLATE_TITULO = '{brand} {model} {year} {tipo_cabina} {cuatro_por_cuatro} {transmission}';
+const DEFAULT_TEMPLATE_DESCRIPCION = `{brand} {model} {year}
+
+Motor {engine}
+{mileage}
+Transmisión {transmission}
+{has_ac_text}
+{vidrios_electricos}
+{retrovisores_electricos}`;
+
 export async function getAppConfig() {
   let { data, error } = await supabase
     .from('app_config')
@@ -19,6 +30,8 @@ export async function getAppConfig() {
       system_prompt_correct: '',
       template_disponible: '',
       template_precio: '',
+      template_titulo: DEFAULT_TEMPLATE_TITULO,
+      template_descripcion: DEFAULT_TEMPLATE_DESCRIPCION,
     };
     const { data: newData, error: insertError } = await supabase
       .from('app_config')

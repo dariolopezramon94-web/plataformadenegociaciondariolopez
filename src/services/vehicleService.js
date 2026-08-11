@@ -348,94 +348,95 @@ export async function generatePriceMessage(vehicle) {
 }
 
 // ==============================
-// GENERAR TÍTULO PARA MARKETPLACE (SIN TIPO DE VEHÍCULO)
+// GENERAR TÍTULO (USANDO PLANTILLA DE CONFIGURACIÓN)
 // ==============================
-export function generateMarketplaceTitle(vehicle) {
-  const parts = [];
+export async function generateMarketplaceTitle(vehicle) {
+  const { data: config, error } = await supabase
+    .from('app_config')
+    .select('template_titulo')
+    .eq('id', 1)
+    .single();
 
-  if (vehicle.brand) parts.push(vehicle.brand);
-  if (vehicle.model) parts.push(vehicle.model);
-  if (vehicle.year) parts.push(vehicle.year);
-
-  const features = [];
-
-  if (vehicle.type && vehicle.type.toLowerCase() === 'camioneta' && vehicle.tipo_cabina) {
-    features.push(vehicle.tipo_cabina);
-  }
-  if (vehicle.cuatro_por_cuatro) {
-    features.push('4x4');
-  }
-  if (vehicle.has_ac) {
-    features.push('A/C');
-  }
-  if (vehicle.transmission) {
-    features.push(vehicle.transmission);
+  let template = config?.template_titulo;
+  if (!template || template.trim() === '') {
+    template = '{brand} {model} {year} {tipo_cabina} {cuatro_por_cuatro} {transmission}';
   }
 
-  if (features.length > 0) {
-    parts.push(features.join(' '));
-  }
+  const replacements = {
+    '{brand}': vehicle.brand || '',
+    '{model}': vehicle.model || '',
+    '{year}': vehicle.year || '',
+    '{type}': vehicle.type || '',
+    '{tipo_cabina}': (vehicle.type && vehicle.type.toLowerCase() === 'camioneta' && vehicle.tipo_cabina) ? vehicle.tipo_cabina : '',
+    '{cuatro_por_cuatro}': vehicle.cuatro_por_cuatro ? '4x4' : '',
+    '{transmission}': vehicle.transmission || '',
+    '{has_ac_text}': vehicle.has_ac ? 'A/C' : '',
+    '{vidrios_electricos}': vehicle.vidrios_electricos ? 'Vidrios eléctricos' : '',
+    '{retrovisores_electricos}': vehicle.retrovisores_electricos ? 'Retrovisores eléctricos' : '',
+    '{engine}': vehicle.engine || '',
+    '{mileage}': vehicle.mileage ? formatMileage(vehicle.mileage) : '',
+    '{price}': `$${vehicle.price.toLocaleString('es-ES')}`,
+    '{article}': getArticle(vehicle.type),
+    '{plate_formatted}': `${vehicle.plate?.charAt(0) || '?'}*${vehicle.plate?.slice(-2) || '??'}*`,
+    '{negociable}': vehicle.negociable ? 'negociable' : 'no negociable',
+  };
 
-  let title = parts.join(' ');
+  let title = template;
+  Object.entries(replacements).forEach(([key, value]) => {
+    title = title.replaceAll(key, value);
+  });
+
   title = title.replace(/\s+/g, ' ').trim();
-
   return title;
 }
 
 // ==============================
-// GENERAR DESCRIPCIÓN PARA MARKETPLACE (FORMATO EN LISTA)
+// GENERAR DESCRIPCIÓN (USANDO PLANTILLA DE CONFIGURACIÓN)
 // ==============================
-export function generateDescription(vehicle) {
-  const lines = [];
+export async function generateDescription(vehicle) {
+  const { data: config, error } = await supabase
+    .from('app_config')
+    .select('template_descripcion')
+    .eq('id', 1)
+    .single();
 
-  // Línea 1: Marca + Modelo + Año (sin tipo)
-  const brand = vehicle.brand || '';
-  const model = vehicle.model || '';
-  const year = vehicle.year || '';
-  let line1 = `${brand} ${model} ${year}`.trim();
-  if (line1.length > 0) {
-    line1 = line1.charAt(0).toUpperCase() + line1.slice(1);
-  }
-  lines.push(line1);
+  let template = config?.template_descripcion;
+  if (!template || template.trim() === '') {
+    template = `{brand} {model} {year}
 
-  // Línea vacía para separación
-  lines.push('');
-
-  // Motor
-  if (vehicle.engine) {
-    lines.push(`Motor ${vehicle.engine}`);
+Motor {engine}
+{mileage}
+Transmisión {transmission}
+{has_ac_text}
+{vidrios_electricos}
+{retrovisores_electricos}`;
   }
 
-  // Kilometraje
-  if (vehicle.mileage) {
-    const kmFormatted = formatMileage(vehicle.mileage);
-    lines.push(kmFormatted);
-  }
+  const replacements = {
+    '{brand}': vehicle.brand || '',
+    '{model}': vehicle.model || '',
+    '{year}': vehicle.year || '',
+    '{type}': vehicle.type || '',
+    '{tipo_cabina}': vehicle.tipo_cabina || '',
+    '{cuatro_por_cuatro}': vehicle.cuatro_por_cuatro ? '4x4' : '',
+    '{transmission}': vehicle.transmission || '',
+    '{has_ac_text}': vehicle.has_ac ? 'Aire acondicionado' : '',
+    '{vidrios_electricos}': vehicle.vidrios_electricos ? 'Vidrios eléctricos' : '',
+    '{retrovisores_electricos}': vehicle.retrovisores_electricos ? 'Retrovisores eléctricos' : '',
+    '{engine}': vehicle.engine || '',
+    '{mileage}': vehicle.mileage ? formatMileage(vehicle.mileage) : '',
+    '{price}': `$${vehicle.price.toLocaleString('es-ES')}`,
+    '{article}': getArticle(vehicle.type),
+    '{plate_formatted}': `${vehicle.plate?.charAt(0) || '?'}*${vehicle.plate?.slice(-2) || '??'}*`,
+    '{negociable}': vehicle.negociable ? 'negociable' : 'no negociable',
+  };
 
-  // Transmisión
-  if (vehicle.transmission) {
-    lines.push(`Transmisión ${vehicle.transmission}`);
-  }
+  let description = template;
+  Object.entries(replacements).forEach(([key, value]) => {
+    description = description.replaceAll(key, value);
+  });
 
-  // Aire acondicionado
-  if (vehicle.has_ac) {
-    lines.push('Aire acondicionado');
-  }
-
-  // Vidrios eléctricos
-  if (vehicle.vidrios_electricos) {
-    lines.push('Vidrios eléctricos');
-  }
-
-  // Retrovisores eléctricos
-  if (vehicle.retrovisores_electricos) {
-    lines.push('Retrovisores eléctricos');
-  }
-
-  // No incluir 4x4, cabina, negociable ni placa
-
-  // Unir líneas con saltos de línea
-  return lines.join('\n');
+  return description;
 }
 
 // ==============================

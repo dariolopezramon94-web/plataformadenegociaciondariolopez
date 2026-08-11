@@ -33,7 +33,7 @@ export function VehicleRow({
   onToggleFotografiado,
   onNotification,
 }) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isRevisor } = useAuth();
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [soldBy, setSoldBy] = useState('');
 
@@ -55,13 +55,13 @@ export function VehicleRow({
     navigator.clipboard.writeText(message);
   };
 
-  const copyTitle = () => {
-    const title = generateMarketplaceTitle(vehicle);
+  const copyTitle = async () => {
+    const title = await generateMarketplaceTitle(vehicle);
     navigator.clipboard.writeText(title);
   };
 
-  const copyDescription = () => {
-    const description = generateDescription(vehicle);
+  const copyDescription = async () => {
+    const description = await generateDescription(vehicle);
     navigator.clipboard.writeText(description);
   };
 
@@ -183,7 +183,8 @@ export function VehicleRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 mt-3">
-        {isAdmin && vehicle.status !== 'vendido' && (
+        {/* Mostrar "Marcar vendido" para admin y revisor */}
+        {(isAdmin || isRevisor) && vehicle.status !== 'vendido' && (
           <button
             onClick={() => handleStatusChange('vendido')}
             className="px-2 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
