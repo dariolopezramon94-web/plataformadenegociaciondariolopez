@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { generateCustomMessage, generatePriceMessage, generateMarketplaceTitle, generateDescription } from '../../services/vehicleService';
+import {
+  generateCustomMessage,
+  generatePriceMessage,
+  generateMarketplaceTitle,
+  generateDescription,
+  incrementCopyCount,
+} from '../../services/vehicleService';
 
 const formatDate = (dateString) => {
   if (!dateString) return '-';
@@ -33,7 +39,7 @@ export function VehicleRow({
   onToggleFotografiado,
   onNotification,
 }) {
-  const { isAdmin, isRevisor } = useAuth();
+  const { isAdmin } = useAuth();
   const [showStatusMenu, setShowStatusMenu] = useState(false);
   const [soldBy, setSoldBy] = useState('');
 
@@ -43,6 +49,7 @@ export function VehicleRow({
       onNotification('La plantilla para mensaje de disponibilidad no está configurada', 'error');
       return;
     }
+    await incrementCopyCount(vehicle.id, 'disponible');
     navigator.clipboard.writeText(message);
   };
 
@@ -52,6 +59,7 @@ export function VehicleRow({
       onNotification('La plantilla para mensaje de precio no está configurada', 'error');
       return;
     }
+    await incrementCopyCount(vehicle.id, 'precio');
     navigator.clipboard.writeText(message);
   };
 
@@ -183,8 +191,7 @@ export function VehicleRow({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 mt-3">
-        {/* Mostrar "Marcar vendido" para admin y revisor */}
-        {(isAdmin || isRevisor) && vehicle.status !== 'vendido' && (
+        {isAdmin && vehicle.status !== 'vendido' && (
           <button
             onClick={() => handleStatusChange('vendido')}
             className="px-2 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
@@ -192,30 +199,36 @@ export function VehicleRow({
             Marcar vendido
           </button>
         )}
-        <button
-          onClick={copyFullMessage}
-          className="px-2 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
-        >
-          Copiar disponible
-        </button>
-        <button
-          onClick={copyPriceMessage}
-          className="px-2 py-1 bg-blue-500/20 backdrop-blur-sm hover:bg-blue-500/30 text-blue-300 text-xs rounded-lg border border-blue-500/30 transition"
-        >
-          Copiar precio
-        </button>
-        <button
-          onClick={copyTitle}
-          className="px-2 py-1 bg-green-500/20 backdrop-blur-sm hover:bg-green-500/30 text-green-300 text-xs rounded-lg border border-green-500/30 transition"
-        >
-          Copiar título
-        </button>
-        <button
-          onClick={copyDescription}
-          className="px-2 py-1 bg-purple-500/20 backdrop-blur-sm hover:bg-purple-500/30 text-purple-300 text-xs rounded-lg border border-purple-500/30 transition"
-        >
-          Copiar descripción
-        </button>
+
+        {isAdmin && (
+          <>
+            <button
+              onClick={copyFullMessage}
+              className="px-2 py-1 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-xs rounded-lg border border-white/20 transition"
+            >
+              Copiar disponible
+            </button>
+            <button
+              onClick={copyPriceMessage}
+              className="px-2 py-1 bg-blue-500/20 backdrop-blur-sm hover:bg-blue-500/30 text-blue-300 text-xs rounded-lg border border-blue-500/30 transition"
+            >
+              Copiar precio
+            </button>
+            <button
+              onClick={copyTitle}
+              className="px-2 py-1 bg-green-500/20 backdrop-blur-sm hover:bg-green-500/30 text-green-300 text-xs rounded-lg border border-green-500/30 transition"
+            >
+              Copiar título
+            </button>
+            <button
+              onClick={copyDescription}
+              className="px-2 py-1 bg-purple-500/20 backdrop-blur-sm hover:bg-purple-500/30 text-purple-300 text-xs rounded-lg border border-purple-500/30 transition"
+            >
+              Copiar descripción
+            </button>
+          </>
+        )}
+
         {isAdmin && (
           <>
             <button
@@ -248,6 +261,14 @@ export function VehicleRow({
         <span>Negociable: {vehicle.negociable ? 'Sí' : 'No'}</span>
         <span>Cabina: {vehicle.tipo_cabina || 'N/A'}</span>
       </div>
+
+      {/* Contador de copias sin emojis y con ortografía corregida */}
+      {isAdmin && (
+        <div className="mt-2 pt-2 border-t border-white/10 flex gap-4 text-white/40 text-xs">
+          <span>Copias de disponibilidad: {vehicle.copy_stats?.disponible || 0}</span>
+          <span>Copias de precio: {vehicle.copy_stats?.precio || 0}</span>
+        </div>
+      )}
 
       {customFields.length > 0 && (
         <div className="mt-2 pt-2 border-t border-white/10">

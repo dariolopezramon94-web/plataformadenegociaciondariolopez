@@ -20,14 +20,12 @@ export function Layout({ children }) {
       <nav className="bg-white/5 backdrop-blur-xl border-b border-white/10 shadow-2xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
             <div className="flex items-center">
               <span className="text-white font-bold text-lg sm:text-xl drop-shadow-lg">
                 GVDL
               </span>
             </div>
 
-            {/* Menú hamburguesa (móvil) */}
             <div className="md:hidden">
               <button
                 onClick={toggleMenu}
@@ -47,16 +45,19 @@ export function Layout({ children }) {
               <Link to="/inventario" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
                 Catálogo
               </Link>
+              <Link to="/financiamiento" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
+                Calculadora
+              </Link>
               {isAdmin && (
                 <>
+                  <Link to="/dashboard" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
+                    Dashboard
+                  </Link>
                   <Link to="/agregar-vehiculo" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
                     Registrar vehículo
                   </Link>
                   <Link to="/negociacion" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
                     Asistente de negociación
-                  </Link>
-                  <Link to="/financiamiento" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
-                    Calculadora
                   </Link>
                   <Link to="/configuracion" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition duration-200 hover:bg-white/10">
                     Configuración
@@ -71,7 +72,6 @@ export function Layout({ children }) {
               </button>
             </div>
 
-            {/* Usuario y logout en móvil */}
             <div className="md:hidden flex items-center gap-2">
               <button
                 onClick={handleLogout}
@@ -82,22 +82,24 @@ export function Layout({ children }) {
             </div>
           </div>
 
-          {/* Menú desplegable móvil */}
           {menuOpen && (
             <div className="md:hidden pb-4 pt-2 space-y-2 border-t border-white/10">
               <Link to="/inventario" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
                 Catálogo
               </Link>
+              <Link to="/financiamiento" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
+                Calculadora
+              </Link>
               {isAdmin && (
                 <>
+                  <Link to="/dashboard" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
+                    Dashboard
+                  </Link>
                   <Link to="/agregar-vehiculo" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
                     Registrar vehículo
                   </Link>
                   <Link to="/negociacion" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
                     Asistente de negociación
-                  </Link>
-                  <Link to="/financiamiento" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
-                    Calculadora
                   </Link>
                   <Link to="/configuracion" onClick={closeMenu} className="block text-white/80 hover:text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10">
                     Configuración

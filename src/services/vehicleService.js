@@ -204,7 +204,7 @@ export async function updateVehicle(id, data) {
 }
 
 // ==============================
-// CAMBIAR ESTADO
+// CAMBIAR ESTADO (con eliminación de duplicados en sales)
 // ==============================
 export async function changeVehicleStatus(id, status, soldBy = null) {
   const { error: updateError } = await supabase
@@ -214,6 +214,12 @@ export async function changeVehicleStatus(id, status, soldBy = null) {
   if (updateError) throw updateError;
 
   if (status === 'vendido' && soldBy) {
+    const { error: deleteError } = await supabase
+      .from('sales')
+      .delete()
+      .eq('vehicle_id', id);
+    if (deleteError) console.warn('Error al eliminar venta anterior:', deleteError);
+
     const { error: saleError } = await supabase
       .from('sales')
       .insert([{ vehicle_id: id, sold_by: soldBy }]);
@@ -245,6 +251,76 @@ export async function deleteVehicle(id) {
     .delete()
     .eq('id', id);
   if (error) throw error;
+}
+
+// ==============================
+// CONTADOR DE COPIAS DE MENSAJES
+// ==============================
+
+/**
+ * Incrementa el contador de copias para un vehículo y tipo de mensaje
+ * @param {string} vehicleId - ID del vehículo
+ * @param {string} type - 'disponible' o 'precio'
+ */
+export async function incrementCopyCount(vehicleId, type) {
+  // Obtener el registro actual
+  const { data: existing, error: fetchError } = await supabase
+    .from('message_stats')
+    .select('count')
+    .eq('vehicle_id', vehicleId)
+    .eq('type', type)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error('Error al obtener contador:', fetchError);
+    throw fetchError;
+  }
+
+  if (existing) {
+    // Si existe, incrementar
+    const newCount = existing.count + 1;
+    const { error: updateError } = await supabase
+      .from('message_stats')
+      .update({ count: newCount, last_copied_at: new Date().toISOString() })
+      .eq('vehicle_id', vehicleId)
+      .eq('type', type);
+    if (updateError) {
+      console.error('Error al actualizar contador:', updateError);
+      throw updateError;
+    }
+  } else {
+    // Si no existe, insertar con count = 1
+    const { error: insertError } = await supabase
+      .from('message_stats')
+      .insert([{ vehicle_id: vehicleId, type: type, count: 1 }]);
+    if (insertError) {
+      console.error('Error al insertar contador:', insertError);
+      throw insertError;
+    }
+  }
+}
+
+/**
+ * Obtiene los conteos de copias para un vehículo
+ * @param {string} vehicleId - ID del vehículo
+ * @returns {Promise<{disponible: number, precio: number}>}
+ */
+export async function getCopyStats(vehicleId) {
+  const { data, error } = await supabase
+    .from('message_stats')
+    .select('type, count')
+    .eq('vehicle_id', vehicleId);
+
+  if (error) {
+    console.error('Error al obtener estadísticas de copias:', error);
+    return { disponible: 0, precio: 0 };
+  }
+
+  const stats = { disponible: 0, precio: 0 };
+  data.forEach(row => {
+    stats[row.type] = row.count || 0;
+  });
+  return stats;
 }
 
 // ==============================

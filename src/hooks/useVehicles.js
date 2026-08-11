@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../services/supabaseClient';
 import {
   getVehicles,
   createVehicle,
@@ -19,6 +20,7 @@ export function useVehicles() {
     publicado: 'todos',
     informacion: 'todos',
     fotografiado: 'todos',
+    sortBy: 'brand',
   });
 
   const fetchVehicles = useCallback(async () => {
@@ -30,9 +32,14 @@ export function useVehicles() {
       if (data.length > 0) {
         const vehicleIds = data.map(v => v.id);
 
-        const [customValues, sales] = await Promise.all([
+        // Obtener valores personalizados, ventas y estadísticas de copias
+        const [customValues, sales, copyStats] = await Promise.all([
           getCustomValuesForVehicles(vehicleIds),
           getSalesForVehicles(vehicleIds),
+          supabase
+            .from('message_stats')
+            .select('vehicle_id, type, count')
+            .in('vehicle_id', vehicleIds),
         ]);
 
         const customMap = {};
@@ -55,11 +62,43 @@ export function useVehicles() {
           };
         });
 
-        const enriched = data.map(vehicle => ({
+        // Construir mapa de estadísticas de copias
+        const copyMap = {};
+        if (!copyStats.error && copyStats.data) {
+          copyStats.data.forEach(stat => {
+            if (!copyMap[stat.vehicle_id]) copyMap[stat.vehicle_id] = {};
+            copyMap[stat.vehicle_id][stat.type] = stat.count || 0;
+          });
+        }
+
+        let enriched = data.map(vehicle => ({
           ...vehicle,
           custom_fields: customMap[vehicle.id] || [],
           sale_info: salesMap[vehicle.id] || null,
+          copy_stats: {
+            disponible: copyMap[vehicle.id]?.disponible || 0,
+            precio: copyMap[vehicle.id]?.precio || 0,
+          },
+          // Total de copias (disponible + precio)
+          total_copias: (copyMap[vehicle.id]?.disponible || 0) + (copyMap[vehicle.id]?.precio || 0),
         }));
+
+        // Aplicar ordenamiento según sortBy
+        const sortBy = filters.sortBy || 'brand';
+        switch (sortBy) {
+          case 'price-asc':
+            enriched.sort((a, b) => a.price - b.price);
+            break;
+          case 'price-desc':
+            enriched.sort((a, b) => b.price - a.price);
+            break;
+          case 'most-copied':
+            enriched.sort((a, b) => b.total_copias - a.total_copias);
+            break;
+          default: // 'brand'
+            enriched.sort((a, b) => a.brand.localeCompare(b.brand));
+            break;
+        }
 
         setVehicles(enriched);
       } else {

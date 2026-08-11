@@ -21,6 +21,10 @@ export function FilterBar({ filters, setFilters }) {
     setFilters({ ...filters, fotografiado: e.target.value });
   };
 
+  const handleSortChange = (e) => {
+    setFilters({ ...filters, sortBy: e.target.value });
+  };
+
   const clearFilters = () => {
     setFilters({
       status: 'todos',
@@ -28,6 +32,7 @@ export function FilterBar({ filters, setFilters }) {
       publicado: 'todos',
       informacion: 'todos',
       fotografiado: 'todos',
+      sortBy: 'brand',
     });
   };
 
@@ -110,6 +115,24 @@ export function FilterBar({ filters, setFilters }) {
           <option value="todos">Todos</option>
           <option value="si">Fotografiado</option>
           <option value="no">No fotografiado</option>
+        </select>
+      </div>
+
+      {/* Nuevo filtro: Ordenar por */}
+      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <label htmlFor="sortFilter" className="text-white/80 text-sm font-medium">
+          Ordenar por:
+        </label>
+        <select
+          id="sortFilter"
+          value={filters.sortBy || 'brand'}
+          onChange={handleSortChange}
+          className="flex-1 sm:flex-none bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+        >
+          <option value="brand">Marca (A-Z)</option>
+          <option value="price-asc">Precio (menor a mayor)</option>
+          <option value="price-desc">Precio (mayor a menor)</option>
+          <option value="most-copied">Más consultados</option>
         </select>
       </div>
 

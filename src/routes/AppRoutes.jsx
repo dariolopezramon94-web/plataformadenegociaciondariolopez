@@ -9,6 +9,7 @@ import { EditVehiclePage } from '../pages/EditVehiclePage';
 import { NegotiationPage } from '../pages/NegotiationPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { FinancingPage } from '../pages/FinancingPage';
+import { ReportsPage } from '../pages/ReportsPage';
 
 export function AppRoutes() {
   return (
@@ -72,13 +73,24 @@ export function AppRoutes() {
           }
         />
 
-        {/* Calculadora accesible para todos los autenticados (admin y revisor) */}
         <Route
           path="/financiamiento"
           element={
             <ProtectedRoute>
               <Layout>
                 <FinancingPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Nueva ruta: Dashboard - solo admin */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <Layout>
+                <ReportsPage />
               </Layout>
             </ProtectedRoute>
           }
