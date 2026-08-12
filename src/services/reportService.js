@@ -1,3 +1,4 @@
+// src/services/reportService.js
 import { supabase } from './supabaseClient';
 
 // Función helper para formatear números a "k"
@@ -8,7 +9,9 @@ function formatPriceRange(price) {
   return price.toString();
 }
 
-// Obtener datos para el informe completo
+// ============================================
+// OBTENER DATOS PARA EL INFORME COMPLETO
+// ============================================
 export async function getOverviewData({ month, year }) {
   // Construir filtro de fecha si month y year no son 'todos'
   let dateFilter = {};
@@ -18,7 +21,7 @@ export async function getOverviewData({ month, year }) {
     dateFilter = { startDate, endDate };
   }
 
-  // 1. KPIs
+  // ===== 1. KPIs (existentes, sin cambios) =====
   // Total en inventario (disponible + no_disponible)
   const { count: inventoryCount } = await supabase
     .from('vehicles')
@@ -32,7 +35,7 @@ export async function getOverviewData({ month, year }) {
       vehicle_id,
       price_sold,
       sale_date,
-      vehicles (price, created_at, status)
+      vehicles (price, created_at, status, brand, model, year, type)
     `)
     .gte('sale_date', dateFilter.startDate || '1900-01-01')
     .lte('sale_date', dateFilter.endDate || '2100-12-31');
@@ -47,20 +50,128 @@ export async function getOverviewData({ month, year }) {
     return sum + price;
   }, 0);
 
-  // Calcular tiempos en patio (máximo y mínimo)
+  // Calcular tiempos en patio (máximo, mínimo, promedio)
   let maxDays = 0;
   let minDays = Infinity;
+  let totalDays = 0;
+  let validDaysCount = 0;
   validSales.forEach(item => {
     const created = item.vehicles?.created_at;
     if (created) {
       const diff = (new Date(item.sale_date) - new Date(created)) / (1000 * 60 * 60 * 24);
       if (diff > maxDays) maxDays = diff;
       if (diff < minDays) minDays = diff;
+      totalDays += diff;
+      validDaysCount++;
     }
   });
   if (minDays === Infinity) minDays = 0;
+  const avgDays = validDaysCount > 0 ? Math.round(totalDays / validDaysCount) : 0;
 
-  // 2. Gráficos
+  // ===== 2. SEMÁFOROS (NUEVO) =====
+  const { data: nonSoldVehicles } = await supabase
+    .from('vehicles')
+    .select('publicado_marketplace, informacion_completa, fotografiado')
+    .neq('status', 'vendido');
+
+  const totalNonSold = nonSoldVehicles?.length || 0;
+  const semaforos = {
+    publicado: {
+      count: nonSoldVehicles?.filter(v => v.publicado_marketplace === true).length || 0,
+      total: totalNonSold,
+    },
+    informacion: {
+      count: nonSoldVehicles?.filter(v => v.informacion_completa === true).length || 0,
+      total: totalNonSold,
+    },
+    fotografiado: {
+      count: nonSoldVehicles?.filter(v => v.fotografiado === true).length || 0,
+      total: totalNonSold,
+    },
+  };
+
+  // ===== 3. VENTAS POR FECHA (línea de tiempo, agrupación automática) (NUEVO) =====
+  function groupSalesByDate(sales, startDate, endDate) {
+    // Determinar granularidad: si rango <= 31 días -> día, si <= 90 días -> semana, sino mes
+    const diffDays = (endDate && startDate) ? (new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24) : 365;
+    let granularity = 'month';
+    if (diffDays <= 31) granularity = 'day';
+    else if (diffDays <= 90) granularity = 'week';
+
+    const grouped = {};
+    sales.forEach(sale => {
+      const date = new Date(sale.sale_date);
+      let key;
+      if (granularity === 'day') {
+        key = date.toISOString().split('T')[0];
+      } else if (granularity === 'week') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split('T')[0];
+      } else { // month
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+      grouped[key] = (grouped[key] || 0) + 1;
+    });
+    // Ordenar por fecha
+    return Object.entries(grouped)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, count]) => ({ date, count }));
+  }
+
+  const salesTimeline = groupSalesByDate(
+    validSales,
+    dateFilter.startDate,
+    dateFilter.endDate
+  );
+
+  // ===== 4. TIEMPO EN INVENTARIO (por marca y tipo) (NUEVO) =====
+  const timeByBrand = {};
+  const timeByType = {};
+  validSales.forEach(sale => {
+    const created = sale.vehicles?.created_at;
+    if (created) {
+      const days = Math.round((new Date(sale.sale_date) - new Date(created)) / (1000 * 60 * 60 * 24));
+      const brand = sale.vehicles?.brand || 'Sin marca';
+      const type = sale.vehicles?.type || 'Sin tipo';
+      if (!timeByBrand[brand]) timeByBrand[brand] = { total: 0, count: 0 };
+      if (!timeByType[type]) timeByType[type] = { total: 0, count: 0 };
+      timeByBrand[brand].total += days;
+      timeByBrand[brand].count += 1;
+      timeByType[type].total += days;
+      timeByType[type].count += 1;
+    }
+  });
+
+  const avgDaysByBrand = Object.entries(timeByBrand)
+    .map(([name, data]) => ({ name, avg: Math.round(data.total / data.count) }))
+    .sort((a, b) => a.avg - b.avg);
+
+  const avgDaysByType = Object.entries(timeByType)
+    .map(([name, data]) => ({ name, avg: Math.round(data.total / data.count) }))
+    .sort((a, b) => a.avg - b.avg);
+
+  // ===== 5. MARCAS/TIPOS MÁS VENDIDOS (con filtro de fecha) (NUEVO) =====
+  const soldBrandsCount = {};
+  const soldTypesCount = {};
+  validSales.forEach(sale => {
+    const brand = sale.vehicles?.brand || 'Sin marca';
+    const type = sale.vehicles?.type || 'Sin tipo';
+    soldBrandsCount[brand] = (soldBrandsCount[brand] || 0) + 1;
+    soldTypesCount[type] = (soldTypesCount[type] || 0) + 1;
+  });
+
+  const topSoldBrandsFiltered = Object.entries(soldBrandsCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, value]) => ({ name, value }));
+
+  const topSoldTypes = Object.entries(soldTypesCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, value]) => ({ name, value }));
+
+  // ===== 6. GRÁFICOS EXISTENTES (sin cambios) =====
   // Marcas disponibles (excluyendo vendidos)
   const { data: availableBrands } = await supabase
     .from('vehicles')
@@ -76,7 +187,7 @@ export async function getOverviewData({ month, year }) {
     .slice(0, 5)
     .map(([name, value]) => ({ name, value }));
 
-  // Marcas vendidas (solo vendidos)
+  // Marcas vendidas (solo vendidos) - consulta global (se mantiene)
   const { data: soldBrands } = await supabase
     .from('vehicles')
     .select('brand')
@@ -112,45 +223,46 @@ export async function getOverviewData({ month, year }) {
     }
   }
 
-  // Distribución de precios (histograma) - CON RANGOS FORMATEADOS
+  // Distribución de precios
   const { data: priceData } = await supabase
     .from('vehicles')
     .select('price')
     .neq('status', 'vendido');
   const prices = priceData?.map(item => item.price).filter(p => p !== null && p > 0) || [];
 
-  const priceBins = [5000, 10000, 15000, 20000, 30000, 50000, 100000];
-  const priceHistogram = [];
+  const priceRanges = [
+    { min: 0, max: 5000, label: '0 a 5k' },
+    { min: 5001, max: 10000, label: '5k a 10k' },
+    { min: 10001, max: 15000, label: '10k a 15k' },
+    { min: 15001, max: 20000, label: '15k a 20k' },
+    { min: 20001, max: 30000, label: '20k a 30k' },
+    { min: 30001, max: 50000, label: '30k a 50k' },
+    { min: 50001, max: 100000, label: '50k a 100k' },
+    { min: 100001, max: Infinity, label: '100k+' },
+  ];
 
-  // Rango inicial: 0 a 5k
-  priceHistogram.push({
-    range: '0 a 5k',
-    fullRange: '$0 a $5000',
-    count: prices.filter(p => p > 0 && p <= 5000).length
+  const priceHistogram = priceRanges.map(range => ({
+    range: range.label,
+    fullRange: `$${range.min.toLocaleString()} - ${range.max === Infinity ? 'más' : '$' + range.max.toLocaleString()}`,
+    count: prices.filter(p => p > range.min && p <= range.max).length
+  }));
+
+  // Colores más frecuentes
+  const { data: colorData } = await supabase
+    .from('vehicles')
+    .select('color')
+    .neq('status', 'vendido');
+  const colorCount = {};
+  colorData?.forEach(item => {
+    const key = item.color || 'No especificado';
+    colorCount[key] = (colorCount[key] || 0) + 1;
   });
+  const topColors = Object.entries(colorCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, value]) => ({ name, value }));
 
-  // Rangos intermedios
-  for (let i = 0; i < priceBins.length - 1; i++) {
-    const min = priceBins[i] + 1;
-    const max = priceBins[i + 1];
-    const count = prices.filter(p => p >= min && p <= max).length;
-    const minFormatted = formatPriceRange(priceBins[i]);
-    const maxFormatted = formatPriceRange(max);
-    priceHistogram.push({
-      range: `${minFormatted} a ${maxFormatted}`,
-      fullRange: `$${min.toLocaleString()} a $${max.toLocaleString()}`,
-      count
-    });
-  }
-
-  // Último rango: 100k+
-  priceHistogram.push({
-    range: '100k+',
-    fullRange: '$100001+',
-    count: prices.filter(p => p > 100000).length
-  });
-
-  // Combustible
+  // Combustible (se mantiene)
   const { data: fuelData } = await supabase.from('vehicles').select('fuel_type');
   const fuelCount = {};
   fuelData?.forEach(item => {
@@ -159,7 +271,7 @@ export async function getOverviewData({ month, year }) {
   });
   const fuelChart = Object.entries(fuelCount).map(([name, value]) => ({ name, value }));
 
-  // Transmisiones
+  // Transmisiones (se mantiene)
   const { data: transData } = await supabase.from('vehicles').select('transmission');
   const transCount = {};
   transData?.forEach(item => {
@@ -168,6 +280,7 @@ export async function getOverviewData({ month, year }) {
   });
   const transmissionChart = Object.entries(transCount).map(([name, value]) => ({ name, value }));
 
+  // ===== RETORNO (con todas las claves existentes + nuevas) =====
   return {
     kpis: {
       inventoryCount,
@@ -175,7 +288,9 @@ export async function getOverviewData({ month, year }) {
       totalRevenue,
       maxDays: Math.round(maxDays),
       minDays: Math.round(minDays),
+      avgDays,
     },
+    semaforos,
     charts: {
       availableBrands: topAvailableBrands,
       soldBrands: topSoldBrands,
@@ -183,11 +298,19 @@ export async function getOverviewData({ month, year }) {
       priceHistogram,
       fuel: fuelChart,
       transmission: transmissionChart,
+      topColors,
+      salesTimeline,
+      avgDaysByBrand,
+      avgDaysByType,
+      topSoldBrandsFiltered,
+      topSoldTypes,
     },
   };
 }
 
-// Obtener datos para el informe de ventas
+// ============================================
+// OBTENER DATOS PARA EL INFORME DE VENTAS (MODIFICADO)
+// ============================================
 export async function getSalesData({ seller, month, year }) {
   let dateFilter = {};
   if (month !== 'todos' && year !== 'todos') {
@@ -196,6 +319,16 @@ export async function getSalesData({ seller, month, year }) {
     dateFilter = { startDate, endDate };
   }
 
+  // ===== OBTENER COMISIÓN POR VEHÍCULO DESDE app_config =====
+  const { data: config } = await supabase
+    .from('app_config')
+    .select('commission_per_vehicle')
+    .eq('id', 1)
+    .single();
+
+  const commissionPerVehicle = config?.commission_per_vehicle ?? 80;
+
+  // ===== VENTAS =====
   let query = supabase
     .from('sales')
     .select(`
@@ -203,7 +336,7 @@ export async function getSalesData({ seller, month, year }) {
       sold_by,
       sale_date,
       price_sold,
-      vehicles (brand, model, year, price, status)
+      vehicles (brand, model, year, price, status, type)
     `)
     .gte('sale_date', dateFilter.startDate || '1900-01-01')
     .lte('sale_date', dateFilter.endDate || '2100-12-31');
@@ -215,7 +348,6 @@ export async function getSalesData({ seller, month, year }) {
   const { data, error } = await query;
   if (error) throw error;
 
-  // Filtrar solo los que tienen status='vendido' (para evitar inconsistencias)
   const validSales = data.filter(item => item.vehicles?.status === 'vendido');
 
   const salesData = validSales.map(item => ({
@@ -228,10 +360,12 @@ export async function getSalesData({ seller, month, year }) {
     vehicle_id: item.vehicle_id,
   }));
 
+  // ===== KPIs =====
   const soldCount = salesData.length;
   const totalRevenue = salesData.reduce((sum, s) => sum + s.price, 0);
-  const avgPrice = soldCount > 0 ? totalRevenue / soldCount : 0;
+  const estimatedCommission = soldCount * commissionPerVehicle;
 
+  // ===== VENTAS POR VENDEDOR =====
   const darioSales = salesData.filter(s => s.sold_by === 'Dario');
   const patioSales = salesData.filter(s => s.sold_by === 'vendedor_patio');
   const sellerStats = [
@@ -239,6 +373,7 @@ export async function getSalesData({ seller, month, year }) {
     { name: 'Vendedor de patio', count: patioSales.length, revenue: patioSales.reduce((sum, s) => sum + s.price, 0) },
   ];
 
+  // ===== INGRESOS MENSUALES =====
   const revenueByMonth = {};
   salesData.forEach(s => {
     const date = new Date(s.sale_date);
@@ -249,16 +384,45 @@ export async function getSalesData({ seller, month, year }) {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([month, revenue]) => ({ month, revenue }));
 
-  const brandRevenue = {};
+  // ===== VENTAS MENSUALES (cantidad de vehículos) con formato de meses =====
+  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const salesCountByMonth = {};
+  salesData.forEach(s => {
+    const date = new Date(s.sale_date);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    salesCountByMonth[key] = (salesCountByMonth[key] || 0) + 1;
+  });
+  const salesTimelineCount = Object.entries(salesCountByMonth)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, count]) => {
+      const [year, monthNum] = key.split('-');
+      const monthName = monthNames[parseInt(monthNum) - 1];
+      return { month: `${monthName} ${year}`, count };
+    });
+
+  // ===== MARCAS MÁS VENDIDAS (por cantidad) =====
+  const brandCount = {};
   salesData.forEach(s => {
     const key = s.brand || 'Sin marca';
-    brandRevenue[key] = (brandRevenue[key] || 0) + s.price;
+    brandCount[key] = (brandCount[key] || 0) + 1;
   });
-  const topBrands = Object.entries(brandRevenue)
+  const topBrandsByCount = Object.entries(brandCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([name, revenue]) => ({ name, revenue }));
+    .map(([name, count]) => ({ name, count }));
 
+  // ===== MODELOS MÁS VENDIDOS (por cantidad) =====
+  const modelCount = {};
+  salesData.forEach(s => {
+    const key = s.model || 'Sin modelo';
+    modelCount[key] = (modelCount[key] || 0) + 1;
+  });
+  const topModelsByCount = Object.entries(modelCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+
+  // ===== TIPOS MÁS VENDIDOS =====
   const typeCount = {};
   if (validSales.length > 0) {
     const vehicleIds = validSales.map(item => item.vehicle_id);
@@ -279,17 +443,13 @@ export async function getSalesData({ seller, month, year }) {
     .slice(0, 5)
     .map(([name, count]) => ({ name, count }));
 
-  const darioRevenue = sellerStats.find(s => s.name === 'Dario')?.revenue || 0;
-  const commissionRate = 0.05;
-  const estimatedCommission = darioRevenue * commissionRate;
-
   return {
     kpis: {
       soldCount,
       totalRevenue,
-      avgPrice,
+      // avgPrice ELIMINADO
       sellerStats,
-      darioRevenue,
+      darioRevenue: sellerStats.find(s => s.name === 'Dario')?.revenue || 0,
       patioRevenue: sellerStats.find(s => s.name === 'Vendedor de patio')?.revenue || 0,
       estimatedCommission,
       topTypes,
@@ -297,13 +457,17 @@ export async function getSalesData({ seller, month, year }) {
     charts: {
       sellerStats,
       revenueTimeline,
-      topBrands,
+      topBrandsByCount,
+      topModelsByCount,
+      salesTimelineCount,
     },
     sales: salesData,
   };
 }
 
-// Exportar CSV
+// ============================================
+// EXPORTAR CSV
+// ============================================
 export function exportToCSV(data, filename) {
   if (!data || data.length === 0) return;
   const headers = Object.keys(data[0]);

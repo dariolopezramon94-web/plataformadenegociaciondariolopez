@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 
-export function SalesTable({ data }) {
+export function SalesTable({ data, isPdf = false }) {
   const [sortConfig, setSortConfig] = useState({ key: 'sale_date', direction: 'desc' });
   const [filterText, setFilterText] = useState('');
 
   if (!data || data.length === 0) {
-    return <div className="text-white/60 text-center py-8">No hay ventas en el período seleccionado.</div>;
+    return (
+      <div style={{ color: isPdf ? '#555' : 'rgba(255,255,255,0.6)' }} className="text-center py-8">
+        No hay ventas en el período seleccionado.
+      </div>
+    );
   }
 
   const sortedData = [...data].sort((a, b) => {
@@ -31,26 +35,45 @@ export function SalesTable({ data }) {
     }));
   };
 
+  // Estilos condicionales para PDF
+  const containerStyle = isPdf
+    ? { backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', overflowX: 'auto' }
+    : { backgroundColor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(8px)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', padding: '16px', overflowX: 'auto' };
+
+  const titleStyle = isPdf
+    ? { color: '#333', fontSize: '0.875rem', fontWeight: '500' }
+    : { color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem', fontWeight: '500' };
+
+  const inputStyle = isPdf
+    ? { padding: '6px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.875rem', color: '#333', backgroundColor: '#fff' }
+    : { padding: '6px 12px', backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', color: '#fff', fontSize: '0.875rem' };
+
+  const tableTextStyle = isPdf ? 'text-gray-700' : 'text-white/70';
+  const hoverTextStyle = isPdf ? 'hover:text-gray-900' : 'hover:text-white';
+  const borderStyle = isPdf ? 'border-gray-200' : 'border-white/10';
+  const rowHoverStyle = isPdf ? 'hover:bg-gray-100' : 'hover:bg-white/5';
+  const emptyMsgStyle = isPdf ? 'text-gray-400' : 'text-white/40';
+
   return (
-    <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4 overflow-x-auto">
+    <div style={containerStyle}>
       <div className="mb-4 flex justify-between items-center">
-        <h3 className="text-white/70 text-sm font-medium">Detalle de transacciones</h3>
+        <h3 style={titleStyle}>Detalle de transacciones</h3>
         <input
           type="text"
           placeholder="Filtrar..."
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
-          className="px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+          style={inputStyle}
         />
       </div>
 
-      <table className="w-full text-sm text-white/70">
+      <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-white/10">
+          <tr className={`border-b ${borderStyle}`}>
             {headers.map(h => (
               <th
                 key={h}
-                className="text-left py-2 px-3 cursor-pointer hover:text-white transition-colors"
+                className={`text-left py-2 px-3 cursor-pointer ${tableTextStyle} ${hoverTextStyle} transition-colors`}
                 onClick={() => handleSort(h.toLowerCase())}
               >
                 {h}
@@ -61,18 +84,18 @@ export function SalesTable({ data }) {
         </thead>
         <tbody>
           {filteredData.map((row, idx) => (
-            <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-              <td className="py-2 px-3">{row.brand}</td>
-              <td className="py-2 px-3">{row.model}</td>
-              <td className="py-2 px-3">{row.year}</td>
-              <td className="py-2 px-3">${row.price.toLocaleString('es-ES')}</td>
-              <td className="py-2 px-3">{row.sold_by}</td>
-              <td className="py-2 px-3">{new Date(row.sale_date).toLocaleDateString('es-ES')}</td>
+            <tr key={idx} className={`border-b ${borderStyle} ${rowHoverStyle} transition-colors`}>
+              <td className={`py-2 px-3 ${tableTextStyle}`}>{row.brand}</td>
+              <td className={`py-2 px-3 ${tableTextStyle}`}>{row.model}</td>
+              <td className={`py-2 px-3 ${tableTextStyle}`}>{row.year}</td>
+              <td className={`py-2 px-3 ${tableTextStyle}`}>${row.price.toLocaleString('es-ES')}</td>
+              <td className={`py-2 px-3 ${tableTextStyle}`}>{row.sold_by}</td>
+              <td className={`py-2 px-3 ${tableTextStyle}`}>{new Date(row.sale_date).toLocaleDateString('es-ES')}</td>
             </tr>
           ))}
           {filteredData.length === 0 && (
             <tr>
-              <td colSpan={6} className="text-center py-4 text-white/40">No hay resultados para el filtro.</td>
+              <td colSpan={6} className={`text-center py-4 ${emptyMsgStyle}`}>No hay resultados para el filtro.</td>
             </tr>
           )}
         </tbody>

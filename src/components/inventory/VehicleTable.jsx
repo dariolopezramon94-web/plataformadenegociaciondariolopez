@@ -1,3 +1,4 @@
+// src/components/inventory/VehicleTable.jsx
 import React from 'react';
 import { VehicleRow } from './VehicleRow';
 
@@ -11,6 +12,7 @@ export function VehicleTable({
   onToggleFotografiado,
   loading,
   onNotification,
+  onCopySuccess,        // <-- NUEVO PROP
 }) {
   if (loading) {
     return (
@@ -41,6 +43,7 @@ export function VehicleTable({
           onToggleInformacionCompleta={onToggleInformacionCompleta}
           onToggleFotografiado={onToggleFotografiado}
           onNotification={onNotification}
+          onCopySuccess={onCopySuccess}   // <-- NUEVO PROP
         />
       ))}
     </div>

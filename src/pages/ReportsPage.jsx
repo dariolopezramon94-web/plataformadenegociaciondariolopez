@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useReports } from '../hooks/useReports';
 import { KPICard } from '../components/reports/KPICard';
 import { ReportFilters } from '../components/reports/ReportFilters';
@@ -6,10 +6,25 @@ import { OverviewCharts } from '../components/reports/OverviewCharts';
 import { SalesCharts } from '../components/reports/SalesCharts';
 import { SalesTable } from '../components/reports/SalesTable';
 import { exportToCSV } from '../services/reportService';
+import ExportPDFButton from '../components/reports/ExportPDFButton';
 
 export function ReportsPage() {
   const { overviewData, salesData, loading, error, filters, updateFilters } = useReports();
   const [activeTab, setActiveTab] = useState('overview');
+  const salesReportRef = useRef(null);
+
+  // Función para obtener el texto del período
+  const getPeriodText = () => {
+    const { month, year } = filters;
+    if (month === 'todos' && year === 'todos') return 'Todos los períodos';
+    if (month !== 'todos' && year !== 'todos') {
+      const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const monthName = monthNames[parseInt(month) - 1];
+      return `${monthName} ${year}`;
+    }
+    if (year !== 'todos') return `Año ${year}`;
+    return 'Período seleccionado';
+  };
 
   const handleExportOverview = () => {
     if (!overviewData) return;
@@ -82,6 +97,7 @@ export function ReportsPage() {
             <KPICard title="Ingresos estimados" value={overviewData.kpis.totalRevenue} prefix="$" color="yellow" />
             <KPICard title="Tiempo máximo en patio" value={overviewData.kpis.maxDays} suffix=" días" color="red" />
             <KPICard title="Tiempo mínimo en patio" value={overviewData.kpis.minDays} suffix=" días" color="purple" />
+            <KPICard title="Tiempo promedio en patio" value={overviewData.kpis.avgDays} suffix=" días" color="indigo" />
           </div>
 
           <div className="flex justify-end">
@@ -93,20 +109,15 @@ export function ReportsPage() {
             </button>
           </div>
 
-          <OverviewCharts data={overviewData.charts} />
+          <OverviewCharts data={overviewData} />
         </>
       )}
 
       {activeTab === 'sales' && salesData && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <KPICard title="Ventas totales" value={salesData.kpis.soldCount} color="blue" />
-            <KPICard title="Ingresos" value={salesData.kpis.totalRevenue} prefix="$" color="green" />
-            <KPICard title="Precio promedio" value={salesData.kpis.avgPrice} prefix="$" color="yellow" />
-            <KPICard title="Comisión estimada" value={salesData.kpis.estimatedCommission} prefix="$" color="red" />
-          </div>
-
-          <div className="flex justify-end">
+          {/* Botones de exportación */}
+          <div className="flex justify-end gap-3">
+            <ExportPDFButton filters={filters} containerRef={salesReportRef} />
             <button
               onClick={handleExportSales}
               className="px-4 py-2 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white text-sm rounded-lg border border-white/20 transition"
@@ -115,8 +126,41 @@ export function ReportsPage() {
             </button>
           </div>
 
-          <SalesCharts data={salesData} />
-          <SalesTable data={salesData.sales} />
+          {/* Contenido del informe de ventas (para PDF) */}
+          <div ref={salesReportRef} className="bg-white p-6 rounded-xl" style={{ backgroundColor: '#ffffff', color: '#000000' }}>
+            {/* Encabezado del reporte */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold" style={{ color: '#000000' }}>Reporte de ventas</h2>
+              <p className="text-lg" style={{ color: '#333333' }}>Darío López</p>
+              <p className="text-md" style={{ color: '#555555' }}>Período: {getPeriodText()}</p>
+            </div>
+
+            {/* KPIs */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-gray-100 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-600">Ventas totales</p>
+                <p className="text-2xl font-bold">{salesData.kpis.soldCount}</p>
+              </div>
+              <div className="bg-gray-100 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-600">Ingresos estimados</p>
+                <p className="text-2xl font-bold">${salesData.kpis.totalRevenue.toLocaleString()}</p>
+              </div>
+              <div className="bg-gray-100 p-4 rounded-lg text-center">
+                <p className="text-sm text-gray-600">Comisión estimada</p>
+                <p className="text-2xl font-bold">${salesData.kpis.estimatedCommission.toLocaleString()}</p>
+              </div>
+            </div>
+
+            {/* Gráficos */}
+            <div className="mb-6">
+              <SalesCharts data={salesData} isPdf={true} />
+            </div>
+
+            {/* Tabla */}
+            <div>
+              <SalesTable data={salesData.sales} isPdf={true} />
+            </div>
+          </div>
         </>
       )}
     </div>

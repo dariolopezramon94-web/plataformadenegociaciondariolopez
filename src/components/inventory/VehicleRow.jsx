@@ -1,3 +1,4 @@
+// src/components/inventory/VehicleRow.jsx
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -38,6 +39,7 @@ export function VehicleRow({
   onToggleInformacionCompleta,
   onToggleFotografiado,
   onNotification,
+  onCopySuccess,        // <-- NUEVO PROP
 }) {
   const { isAdmin } = useAuth();
   const [showStatusMenu, setShowStatusMenu] = useState(false);
@@ -51,6 +53,7 @@ export function VehicleRow({
     }
     await incrementCopyCount(vehicle.id, 'disponible');
     navigator.clipboard.writeText(message);
+    if (onCopySuccess) onCopySuccess();   // <-- NUEVO: refrescar la lista
   };
 
   const copyPriceMessage = async () => {
@@ -61,6 +64,7 @@ export function VehicleRow({
     }
     await incrementCopyCount(vehicle.id, 'precio');
     navigator.clipboard.writeText(message);
+    if (onCopySuccess) onCopySuccess();   // <-- NUEVO: refrescar la lista
   };
 
   const copyTitle = async () => {
@@ -262,7 +266,7 @@ export function VehicleRow({
         <span>Cabina: {vehicle.tipo_cabina || 'N/A'}</span>
       </div>
 
-      {/* Contador de copias sin emojis y con ortografía corregida */}
+      {/* Contador de copias */}
       {isAdmin && (
         <div className="mt-2 pt-2 border-t border-white/10 flex gap-4 text-white/40 text-xs">
           <span>Copias de disponibilidad: {vehicle.copy_stats?.disponible || 0}</span>

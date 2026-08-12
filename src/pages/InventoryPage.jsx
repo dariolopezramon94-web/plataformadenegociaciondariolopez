@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿// src/pages/InventoryPage.jsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '../hooks/useVehicles';
 import { FilterBar } from '../components/inventory/FilterBar';
@@ -15,6 +16,7 @@ export function InventoryPage() {
     error,
     filters,
     setFilters,
+    fetchVehicles,           // <-- NUEVO
     updateStatus,
     removeVehicle,
     togglePublicado,
@@ -126,6 +128,7 @@ export function InventoryPage() {
         onToggleFotografiado={toggleFotografiado}
         loading={loading}
         onNotification={showNotification}
+        onCopySuccess={fetchVehicles}   // <-- NUEVO PROP
       />
 
       <Pagination

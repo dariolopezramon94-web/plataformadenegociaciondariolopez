@@ -13,7 +13,7 @@ function formatMileage(mileage) {
 }
 
 // ==============================
-// OBTENER VEHÍCULOS (CON FILTROS COMPLETOS)
+// OBTENER VEHÍCULOS
 // ==============================
 export async function getVehicles(filters = {}) {
   let query = supabase
@@ -57,7 +57,7 @@ export async function getVehicles(filters = {}) {
 }
 
 // ==============================
-// CREAR VEHÍCULO (con campos personalizados)
+// CREAR VEHÍCULO
 // ==============================
 export async function createVehicle(vehicleData, customValues = {}) {
   const { data: vehicle, error: vehicleError } = await supabase
@@ -86,7 +86,7 @@ export async function createVehicle(vehicleData, customValues = {}) {
 }
 
 // ==============================
-// OBTENER CAMPOS PERSONALIZADOS (definiciones)
+// OBTENER CAMPOS PERSONALIZADOS
 // ==============================
 export async function getCustomFields() {
   const { data, error } = await supabase
@@ -113,7 +113,7 @@ export async function createCustomField(fieldData) {
 }
 
 // ==============================
-// ELIMINAR CAMPO PERSONALIZADO (y sus valores en cascada)
+// ELIMINAR CAMPO PERSONALIZADO
 // ==============================
 export async function deleteCustomField(fieldId) {
   const { error } = await supabase
@@ -125,7 +125,7 @@ export async function deleteCustomField(fieldId) {
 }
 
 // ==============================
-// OBTENER COLORES ÚNICOS (para sugerencias)
+// OBTENER COLORES ÚNICOS
 // ==============================
 export async function getDistinctColors() {
   const { data, error } = await supabase
@@ -141,7 +141,7 @@ export async function getDistinctColors() {
 }
 
 // ==============================
-// OBTENER TIPOS ÚNICOS (para sugerencias)
+// OBTENER TIPOS ÚNICOS
 // ==============================
 export async function getDistinctTypes() {
   const { data, error } = await supabase
@@ -154,7 +154,7 @@ export async function getDistinctTypes() {
 }
 
 // ==============================
-// OBTENER COMBUSTIBLES ÚNICOS (para sugerencias)
+// OBTENER COMBUSTIBLES ÚNICOS
 // ==============================
 export async function getDistinctFuelTypes() {
   const { data, error } = await supabase
@@ -167,7 +167,7 @@ export async function getDistinctFuelTypes() {
 }
 
 // ==============================
-// OBTENER TRANSMISIONES ÚNICAS (para sugerencias)
+// OBTENER TRANSMISIONES ÚNICAS
 // ==============================
 export async function getDistinctTransmissions() {
   const { data, error } = await supabase
@@ -180,7 +180,7 @@ export async function getDistinctTransmissions() {
 }
 
 // ==============================
-// OBTENER TIPOS DE CABINA ÚNICOS (para sugerencias)
+// OBTENER TIPOS DE CABINA ÚNICOS
 // ==============================
 export async function getDistinctCabins() {
   const { data, error } = await supabase
@@ -193,18 +193,37 @@ export async function getDistinctCabins() {
 }
 
 // ==============================
-// ACTUALIZAR VEHÍCULO
+// ACTUALIZAR VEHÍCULO (CON LIMPIEZA AUTOMÁTICA DE SALES)
 // ==============================
 export async function updateVehicle(id, data) {
-  const { error } = await supabase
+  // 1. Obtener estado actual
+  const { data: currentVehicle, error: fetchError } = await supabase
+    .from('vehicles')
+    .select('status')
+    .eq('id', id)
+    .single();
+  if (fetchError) throw fetchError;
+
+  // 2. Actualizar vehículo
+  const { error: updateError } = await supabase
     .from('vehicles')
     .update(data)
     .eq('id', id);
-  if (error) throw error;
+  if (updateError) throw updateError;
+
+  // 3. Si el nuevo estado no es 'vendido', eliminar sales
+  const newStatus = data.status;
+  if (newStatus && newStatus !== 'vendido') {
+    const { error: deleteError } = await supabase
+      .from('sales')
+      .delete()
+      .eq('vehicle_id', id);
+    if (deleteError) console.warn('Error al eliminar sales (puede que no exista):', deleteError);
+  }
 }
 
 // ==============================
-// CAMBIAR ESTADO (con eliminación de duplicados en sales)
+// CAMBIAR ESTADO (desde "Marcar vendido")
 // ==============================
 export async function changeVehicleStatus(id, status, soldBy = null) {
   const { error: updateError } = await supabase
@@ -256,14 +275,7 @@ export async function deleteVehicle(id) {
 // ==============================
 // CONTADOR DE COPIAS DE MENSAJES
 // ==============================
-
-/**
- * Incrementa el contador de copias para un vehículo y tipo de mensaje
- * @param {string} vehicleId - ID del vehículo
- * @param {string} type - 'disponible' o 'precio'
- */
 export async function incrementCopyCount(vehicleId, type) {
-  // Obtener el registro actual
   const { data: existing, error: fetchError } = await supabase
     .from('message_stats')
     .select('count')
@@ -271,50 +283,31 @@ export async function incrementCopyCount(vehicleId, type) {
     .eq('type', type)
     .maybeSingle();
 
-  if (fetchError) {
-    console.error('Error al obtener contador:', fetchError);
-    throw fetchError;
-  }
+  if (fetchError) throw fetchError;
 
   if (existing) {
-    // Si existe, incrementar
     const newCount = existing.count + 1;
     const { error: updateError } = await supabase
       .from('message_stats')
       .update({ count: newCount, last_copied_at: new Date().toISOString() })
       .eq('vehicle_id', vehicleId)
       .eq('type', type);
-    if (updateError) {
-      console.error('Error al actualizar contador:', updateError);
-      throw updateError;
-    }
+    if (updateError) throw updateError;
   } else {
-    // Si no existe, insertar con count = 1
     const { error: insertError } = await supabase
       .from('message_stats')
       .insert([{ vehicle_id: vehicleId, type: type, count: 1 }]);
-    if (insertError) {
-      console.error('Error al insertar contador:', insertError);
-      throw insertError;
-    }
+    if (insertError) throw insertError;
   }
 }
 
-/**
- * Obtiene los conteos de copias para un vehículo
- * @param {string} vehicleId - ID del vehículo
- * @returns {Promise<{disponible: number, precio: number}>}
- */
 export async function getCopyStats(vehicleId) {
   const { data, error } = await supabase
     .from('message_stats')
     .select('type, count')
     .eq('vehicle_id', vehicleId);
 
-  if (error) {
-    console.error('Error al obtener estadísticas de copias:', error);
-    return { disponible: 0, precio: 0 };
-  }
+  if (error) return { disponible: 0, precio: 0 };
 
   const stats = { disponible: 0, precio: 0 };
   data.forEach(row => {
@@ -324,9 +317,8 @@ export async function getCopyStats(vehicleId) {
 }
 
 // ==============================
-// FUNCIONES DE MENSAJES CON FORMATO DE PRECIO Y KILOMETRAJE
+// FUNCIONES DE MENSAJES
 // ==============================
-
 function getArticle(type) {
   if (!type) return 'el';
   const lower = type.toLowerCase();
@@ -349,9 +341,7 @@ export async function generateCustomMessage(vehicle) {
   }
 
   const template = config?.template_disponible;
-  if (!template || template.trim() === '') {
-    return null;
-  }
+  if (!template || template.trim() === '') return null;
 
   const article = getArticle(vehicle.type);
   const typeName = vehicle.type || 'vehículo';
@@ -397,9 +387,7 @@ export async function generatePriceMessage(vehicle) {
   }
 
   const template = config?.template_precio;
-  if (!template || template.trim() === '') {
-    return null;
-  }
+  if (!template || template.trim() === '') return null;
 
   const article = getArticle(vehicle.type);
   const typeName = vehicle.type || 'vehículo';
@@ -423,9 +411,6 @@ export async function generatePriceMessage(vehicle) {
     .replace(/{negociable}/g, negociable);
 }
 
-// ==============================
-// GENERAR TÍTULO (USANDO PLANTILLA DE CONFIGURACIÓN)
-// ==============================
 export async function generateMarketplaceTitle(vehicle) {
   const { data: config, error } = await supabase
     .from('app_config')
@@ -466,9 +451,6 @@ export async function generateMarketplaceTitle(vehicle) {
   return title;
 }
 
-// ==============================
-// GENERAR DESCRIPCIÓN (USANDO PLANTILLA DE CONFIGURACIÓN)
-// ==============================
 export async function generateDescription(vehicle) {
   const { data: config, error } = await supabase
     .from('app_config')
@@ -519,9 +501,7 @@ Transmisión {transmission}
 // OBTENER VALORES PERSONALIZADOS POR VEHÍCULO
 // ==============================
 export async function getCustomValuesForVehicles(vehicleIds) {
-  if (!vehicleIds || vehicleIds.length === 0) {
-    return [];
-  }
+  if (!vehicleIds || vehicleIds.length === 0) return [];
   const { data, error } = await supabase
     .from('vehicle_custom_values')
     .select(`
@@ -542,9 +522,7 @@ export async function getCustomValuesForVehicles(vehicleIds) {
 // OBTENER VENTAS POR VEHÍCULO
 // ==============================
 export async function getSalesForVehicles(vehicleIds) {
-  if (!vehicleIds || vehicleIds.length === 0) {
-    return [];
-  }
+  if (!vehicleIds || vehicleIds.length === 0) return [];
   const { data, error } = await supabase
     .from('sales')
     .select('vehicle_id, sale_date, sold_by')
@@ -554,7 +532,7 @@ export async function getSalesForVehicles(vehicleIds) {
 }
 
 // ==============================
-// OBTENER VEHÍCULO POR ID (con campos personalizados y venta)
+// OBTENER VEHÍCULO POR ID
 // ==============================
 export async function getVehicleById(id) {
   const { data: vehicle, error: vehicleError } = await supabase
